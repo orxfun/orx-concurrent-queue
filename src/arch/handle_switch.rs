@@ -1,11 +1,11 @@
-use crate::growth_count::GrowthCount;
+use crate::state::State;
 
 pub struct HandleSwitch<'a> {
-    growth_count: &'a GrowthCount,
+    growth_count: &'a State,
 }
 
 impl<'a> HandleSwitch<'a> {
-    pub fn new(growth_count: &'a GrowthCount) -> Self {
+    pub fn new(growth_count: &'a State) -> Self {
         Self { growth_count }
     }
 }

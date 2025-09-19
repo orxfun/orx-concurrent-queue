@@ -1,4 +1,4 @@
-use crate::{pop_vec::PopVec, push_vec::PushVec};
+use crate::{pop_vec::PopVec, push_vec::PushVec, state::State};
 use core::sync::atomic::{AtomicUsize, Ordering};
 use orx_concurrent_iter::{ExactSizeConcurrentIter, IntoConcurrentIter};
 use orx_pinned_vec::IntoConcurrentPinnedVec;
@@ -10,7 +10,7 @@ where
 {
     push_vec: PushVec<T>,
     pop_vec: PopVec<T>,
-    pop_len: AtomicUsize,
+    state: State,
 }
 
 impl<T> ConcurrentQueue<T>
@@ -29,8 +29,15 @@ where
     // pub
 
     pub fn pop(&self) -> Option<T> {
-        let before = self.pop_len.fetch_sub(1, Ordering::SeqCst);
-        None
+        let popped = self.pop_vec.pop();
+
+        match popped.is_some() {
+            true => self.pop(),
+            false => {
+                //
+                todo!()
+            }
+        }
     }
 }
 

@@ -3,12 +3,12 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 const SWITCHING: usize = usize::MAX;
 
-pub struct GrowthCount {
+pub struct State {
     switch_requested: AtomicBool,
     count: AtomicUsize,
 }
 
-impl GrowthCount {
+impl State {
     pub fn get_switch_handle(&self) -> HandleSwitch<'_> {
         let prior = self.switch_requested.fetch_or(true, Ordering::SeqCst);
         debug_assert!(!prior);
