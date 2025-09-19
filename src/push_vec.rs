@@ -1,6 +1,6 @@
 use orx_concurrent_bag::ConcurrentBag;
 use orx_concurrent_iter::{IntoConcurrentIter, implementations::jagged_arrays::ConIterJaggedOwned};
-use orx_split_vec::Doubling;
+use orx_split_vec::{Doubling, SplitVec};
 
 pub struct PushVec<T>
 where
@@ -14,6 +14,11 @@ impl<T> PushVec<T>
 where
     T: Send + Sync,
 {
+    pub fn new() -> Self {
+        let bag = ConcurrentBag::with_doubling_growth();
+        Self { bag }
+    }
+
     pub fn push(&self, value: T) -> usize {
         self.bag.push(value)
     }
@@ -34,8 +39,9 @@ where
         unsafe { self.bag.extend_n_items(values, num_items) }
     }
 
-    pub fn into_con_iter(self) -> ConIterJaggedOwned<T, Doubling> {
-        let vec = self.bag.into_inner();
-        vec.into_con_iter()
+    pub fn take_out_as_con_iter(&mut self) -> ConIterJaggedOwned<T, Doubling> {
+        let mut bag = ConcurrentBag::from(SplitVec::<T>::new());
+        core::mem::swap(&mut self.bag, &mut bag);
+        bag.into_inner().into_con_iter()
     }
 }

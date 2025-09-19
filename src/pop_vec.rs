@@ -8,6 +8,15 @@ where
     con_iter: ConIterJaggedOwned<T, Doubling>,
 }
 
+impl<T> From<ConIterJaggedOwned<T, Doubling>> for PopVec<T>
+where
+    T: Send + Sync,
+{
+    fn from(con_iter: ConIterJaggedOwned<T, Doubling>) -> Self {
+        Self { con_iter }
+    }
+}
+
 impl<T> PopVec<T>
 where
     T: Send + Sync,

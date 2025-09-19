@@ -17,8 +17,13 @@ impl<T> ConcurrentQueue<T>
 where
     T: Send + Sync,
 {
-    fn switch(self) {
-        let iter = self.push_vec.into_con_iter();
+    fn switch(&mut self) {
+        let iter = self.push_vec.take_out_as_con_iter();
+        let mut new_pop_vec = PopVec::from(iter);
+        let mut new_push_vec = PushVec::new();
+
+        core::mem::swap(&mut self.pop_vec, &mut new_pop_vec);
+        core::mem::swap(&mut self.push_vec, &mut new_push_vec);
     }
 
     // pub
