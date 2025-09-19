@@ -31,9 +31,6 @@ fn con_just_pop() {
     let num_poppers = 4;
     let num_ticks = 1000;
 
-    let num_poppers = 1;
-    let num_ticks = 10;
-
     let capacity = num_poppers * num_ticks;
 
     let queue = Queue::new(capacity);
@@ -47,7 +44,7 @@ fn con_just_pop() {
     std::thread::scope(|s| {
         for _ in 0..num_poppers {
             s.spawn(|| {
-                for _ in 0..(num_ticks + 1) {
+                for _ in 0..(num_ticks + 20) {
                     if let Some(value) = q.pop() {
                         collected.push(value);
                     }
