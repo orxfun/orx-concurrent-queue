@@ -1,15 +1,15 @@
-use orx_concurrent_iter::ConcurrentIter;
+use orx_concurrent_iter::ExactSizeConcurrentIter;
 
 pub struct PopVec<I>
 where
-    I: ConcurrentIter,
+    I: ExactSizeConcurrentIter,
 {
     con_iter: I,
 }
 
 impl<I> PopVec<I>
 where
-    I: ConcurrentIter,
+    I: ExactSizeConcurrentIter,
 {
     pub fn pop(&self) -> Option<I::Item> {
         self.con_iter.next()
