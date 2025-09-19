@@ -26,12 +26,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "orx-concurrent-option"
+version = "1.5.0"
+source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+checksum = "842a5c05d6f02368d1cdfebec87ae6e2277ca0cf544ab3778e6f2e6c5c947da3"
+
+[[package]]
 name = "orx-concurrent-queue"
 version = "0.1.0"
 dependencies = [
  "orx-concurrent-bag",
  "orx-concurrent-iter",
+ "orx-concurrent-vec",
  "orx-pinned-vec",
+ "orx-split-vec",
+]
+
+[[package]]
+name = "orx-concurrent-vec"
+version = "3.8.0"
+source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+checksum = "9bc932e6a214ee031f4cfa5a89b55e5c9faafe977c6180a54b5d8bc068cb599a"
+dependencies = [
+ "orx-concurrent-option",
+ "orx-fixed-vec",
+ "orx-pinned-concurrent-col",
+ "orx-pinned-vec",
+ "orx-pseudo-default",
  "orx-split-vec",
 ]
 

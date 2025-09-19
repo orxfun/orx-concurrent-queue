@@ -14,5 +14,4 @@
 
 extern crate alloc;
 
-mod con_split_vec;
 mod queue;
