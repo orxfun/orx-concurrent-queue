@@ -30,6 +30,7 @@ name = "orx-concurrent-queue"
 version = "0.1.0"
 dependencies = [
  "orx-concurrent-bag",
+ "orx-concurrent-iter",
  "orx-pinned-vec",
  "orx-split-vec",
 ]

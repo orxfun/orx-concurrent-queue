@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![warn(
-    missing_docs,
+    // missing_docs,
     clippy::unwrap_in_result,
     clippy::unwrap_used,
     clippy::panic,
@@ -12,5 +12,8 @@
 )]
 #![no_std]
 
+mod pop_vec;
 mod push_vec;
 mod queue;
+
+pub use queue::ConcurrentQueue;

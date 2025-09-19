@@ -6,5 +6,6 @@ publish = ["artifactory"]
 
 [dependencies]
 orx-concurrent-bag = { version = "3.1.0", registry = "artifactory" }
+orx-concurrent-iter = { version = "3.1.0", registry = "artifactory" }
 orx-pinned-vec = { version = "3.17.0", registry = "artifactory" }
 orx-split-vec = { version = "3.19.0", registry = "artifactory" }
