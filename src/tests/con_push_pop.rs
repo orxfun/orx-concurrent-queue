@@ -31,23 +31,25 @@ fn con_just_pop() {
     let num_poppers = 4;
     let num_ticks = 1000;
 
+    let num_poppers = 1;
+    let num_ticks = 10;
+
     let capacity = num_poppers * num_ticks;
 
     let queue = Queue::new(capacity);
     let q = &queue;
     let collected = ConcurrentBag::new();
-    let bag = &collected;
 
     for i in 0..capacity {
         queue.push(i);
     }
 
     std::thread::scope(|s| {
-        for t in 0..num_poppers {
-            s.spawn(move || {
-                for _ in 0..num_ticks {
+        for _ in 0..num_poppers {
+            s.spawn(|| {
+                for _ in 0..(num_ticks + 1) {
                     if let Some(value) = q.pop() {
-                        bag.push(value);
+                        collected.push(value);
                     }
                 }
             });

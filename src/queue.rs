@@ -1,12 +1,18 @@
 use std::mem::ManuallyDrop;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+const MAX_NUM_POPPERS: usize = 124;
+const OVERFLOWN_THRESHOLD: usize = usize::MAX - MAX_NUM_POPPERS;
+const fn has_overflown(prev: usize) -> bool {
+    prev == 0 || prev > OVERFLOWN_THRESHOLD
+}
+
 pub struct Queue<T: Send> {
     capacity: usize,
     data: *mut T,
-    push_reserved: AtomicUsize,
+    len: AtomicUsize,
     pushed: AtomicUsize,
-    pop_reserved: AtomicUsize,
+    popped: AtomicUsize,
 }
 
 unsafe impl<T: Send> Sync for Queue<T> {}
@@ -25,17 +31,17 @@ impl<T: Send> Queue<T> {
         Self {
             capacity,
             data,
-            push_reserved: 0.into(),
             pushed: 0.into(),
-            pop_reserved: 0.into(),
+            len: 0.into(),
+            popped: 0.into(),
         }
     }
 
     pub fn as_slice(&mut self) -> &[T] {
-        let reserved = self.push_reserved.load(Ordering::Relaxed);
-        let pushed = self.pushed.load(Ordering::Relaxed);
+        let reserved = self.pushed.load(Ordering::Relaxed);
+        let pushed = self.len.load(Ordering::Relaxed);
         assert_eq!(reserved, pushed);
-        let popped = self.pop_reserved.load(Ordering::Relaxed);
+        let popped = self.popped.load(Ordering::Relaxed);
 
         let begin = unsafe { self.ptr(popped) };
         let len = pushed - popped;
@@ -47,15 +53,30 @@ impl<T: Send> Queue<T> {
     }
 
     pub fn push(&self, value: T) {
-        let idx = self.push_reserved.fetch_add(1, Ordering::Acquire);
+        let idx = self.pushed.fetch_add(1, Ordering::Acquire);
         unsafe { self.ptr(idx).write(value) };
-        self.pushed.fetch_add(1, Ordering::Release);
+        self.len.fetch_add(1, Ordering::Release);
     }
 
     pub fn pop(&self) -> Option<T> {
-        let idx = self.pop_reserved.fetch_add(1, Ordering::Acquire);
-        while self.pushed.load(Ordering::Relaxed) <= idx {}
-        let value = unsafe { self.ptr(idx).read() };
-        Some(value)
+        let prev = self.len.fetch_sub(1, Ordering::Acquire);
+        dbg!(prev);
+        match prev {
+            p if has_overflown(p) => {
+                let current = p.overflowing_sub(1).0;
+                while self
+                    .len
+                    .compare_exchange_weak(current, prev, Ordering::Acquire, Ordering::Relaxed)
+                    .is_err()
+                {}
+                None
+            }
+            _ => {
+                let idx = self.popped.fetch_add(1, Ordering::Acquire);
+                while self.pushed.load(Ordering::Relaxed) <= idx {}
+                let value = unsafe { self.ptr(idx).read() };
+                Some(value)
+            }
+        }
     }
 }
