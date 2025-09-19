@@ -1,27 +1,28 @@
-use core::sync::atomic::{AtomicUsize, Ordering};
-
 use crate::{pop_vec::PopVec, push_vec::PushVec};
-use orx_concurrent_iter::ExactSizeConcurrentIter;
+use core::sync::atomic::{AtomicUsize, Ordering};
+use orx_concurrent_iter::{ExactSizeConcurrentIter, IntoConcurrentIter};
 use orx_pinned_vec::IntoConcurrentPinnedVec;
 use orx_split_vec::SplitVec;
 
-pub struct ConcurrentQueue<I, T, P = SplitVec<T>>
+pub struct ConcurrentQueue<T>
 where
-    T: Send,
-    P: IntoConcurrentPinnedVec<T>,
-    I: ExactSizeConcurrentIter<Item = T>,
+    T: Send + Sync,
 {
-    push_vec: PushVec<T, P>,
-    pop_vec: PopVec<I>,
+    push_vec: PushVec<T>,
+    pop_vec: PopVec<T>,
     pop_len: AtomicUsize,
 }
 
-impl<I, T, P> ConcurrentQueue<I, T, P>
+impl<T> ConcurrentQueue<T>
 where
-    T: Send,
-    P: IntoConcurrentPinnedVec<T>,
-    I: ExactSizeConcurrentIter<Item = T>,
+    T: Send + Sync,
 {
+    fn switch(self) {
+        let iter = self.push_vec.into_con_iter();
+    }
+
+    // pub
+
     pub fn pop(&self) -> Option<T> {
         let before = self.pop_len.fetch_sub(1, Ordering::SeqCst);
         None

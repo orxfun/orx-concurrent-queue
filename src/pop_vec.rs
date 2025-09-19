@@ -1,21 +1,22 @@
-use orx_concurrent_iter::ExactSizeConcurrentIter;
+use orx_concurrent_iter::{ConcurrentIter, implementations::jagged_arrays::ConIterJaggedOwned};
+use orx_split_vec::Doubling;
 
-pub struct PopVec<I>
+pub struct PopVec<T>
 where
-    I: ExactSizeConcurrentIter,
+    T: Send + Sync,
 {
-    con_iter: I,
+    con_iter: ConIterJaggedOwned<T, Doubling>,
 }
 
-impl<I> PopVec<I>
+impl<T> PopVec<T>
 where
-    I: ExactSizeConcurrentIter,
+    T: Send + Sync,
 {
-    pub fn pop(&self) -> Option<I::Item> {
+    pub fn pop(&self) -> Option<T> {
         self.con_iter.next()
     }
 
-    pub fn pop_with_idx(&self) -> Option<(usize, I::Item)> {
+    pub fn pop_with_idx(&self) -> Option<(usize, T)> {
         self.con_iter.next_with_idx()
     }
 }
