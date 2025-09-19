@@ -5,7 +5,8 @@ edition = "2024"
 publish = ["artifactory"]
 
 [dependencies]
-orx-concurrent-bag = { version = "3.1.0", registry = "artifactory" }
+# orx-concurrent-bag = { version = "3.1.0", registry = "artifactory" }
+orx-concurrent-bag = { path = "../orx-concurrent-bag", registry = "artifactory" }
 orx-concurrent-iter = { version = "3.1.0", registry = "artifactory" }
 orx-concurrent-vec = { version = "3.8.0", registry = "artifactory" }
 orx-pinned-vec = { version = "3.17.0", registry = "artifactory" }
