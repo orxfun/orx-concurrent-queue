@@ -40,7 +40,7 @@ impl<T: Send> Queue<T> {
     pub fn as_slice(&mut self) -> &[T] {
         let reserved = self.pushed.load(Ordering::Relaxed);
         let pushed = self.len.load(Ordering::Relaxed);
-        assert_eq!(reserved, pushed);
+        debug_assert_eq!(reserved, pushed);
         let popped = self.popped.load(Ordering::Relaxed);
 
         let begin = unsafe { self.ptr(popped) };
@@ -52,15 +52,10 @@ impl<T: Send> Queue<T> {
         unsafe { self.data.add(idx) }
     }
 
-    pub fn push(&self, value: T) {
-        let idx = self.pushed.fetch_add(1, Ordering::Acquire);
-        unsafe { self.ptr(idx).write(value) };
-        self.len.fetch_add(1, Ordering::Release);
-    }
+    // shrink
 
     pub fn pop(&self) -> Option<T> {
         let prev = self.len.fetch_sub(1, Ordering::Acquire);
-        dbg!(prev);
         match prev {
             p if has_overflown(p) => {
                 let current = p.overflowing_sub(1).0;
@@ -78,5 +73,31 @@ impl<T: Send> Queue<T> {
                 Some(value)
             }
         }
+    }
+
+    // grow
+
+    pub fn push(&self, value: T) {
+        let idx = self.pushed.fetch_add(1, Ordering::Acquire);
+        unsafe { self.ptr(idx).write(value) };
+        self.len.fetch_add(1, Ordering::Release);
+    }
+
+    pub fn extend<I, Iter>(&self, values: I)
+    where
+        Iter: ExactSizeIterator<Item = T>,
+        I: IntoIterator<IntoIter = Iter, Item = T>,
+    {
+        let values = values.into_iter();
+        let len = values.len();
+        let idx = self.pushed.fetch_add(len, Ordering::Acquire);
+
+        let mut ptr = unsafe { self.ptr(idx) };
+        for value in values {
+            unsafe { ptr.write(value) };
+            unsafe { ptr = ptr.add(1) };
+        }
+
+        self.len.fetch_add(len, Ordering::Release);
     }
 }
