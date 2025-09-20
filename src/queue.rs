@@ -1,5 +1,5 @@
 use std::mem::ManuallyDrop;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicIsize, AtomicUsize, Ordering};
 
 const MAX_NUM_POPPERS: usize = 124;
 const OVERFLOWN_THRESHOLD: usize = usize::MAX - MAX_NUM_POPPERS;
@@ -10,7 +10,7 @@ const fn has_overflown(prev: usize) -> bool {
 pub struct Queue<T: Send> {
     capacity: usize,
     data: *mut T,
-    len: AtomicUsize,
+    len: AtomicIsize,
     pushed: AtomicUsize,
     popped: AtomicUsize,
 }
@@ -40,7 +40,8 @@ impl<T: Send> Queue<T> {
     pub fn as_slice(&mut self) -> &[T] {
         let reserved = self.pushed.load(Ordering::Relaxed);
         let pushed = self.len.load(Ordering::Relaxed);
-        debug_assert_eq!(reserved, pushed);
+        debug_assert_eq!(reserved as isize, pushed);
+        let pushed = pushed as usize;
         let popped = self.popped.load(Ordering::Relaxed);
 
         let begin = unsafe { self.ptr(popped) };
@@ -57,8 +58,8 @@ impl<T: Send> Queue<T> {
     pub fn pop(&self) -> Option<T> {
         let prev = self.len.fetch_sub(1, Ordering::Acquire);
         match prev {
-            p if has_overflown(p) => {
-                let current = p.overflowing_sub(1).0;
+            p if p <= 0 => {
+                let current = p - 1;
                 while self
                     .len
                     .compare_exchange_weak(current, prev, Ordering::Acquire, Ordering::Relaxed)
@@ -73,6 +74,14 @@ impl<T: Send> Queue<T> {
                 Some(value)
             }
         }
+    }
+
+    pub fn pull(&self, chunk_size: usize) {
+        let prev = self.len.fetch_sub(chunk_size as isize, Ordering::Acquire);
+        match prev {
+            _ => todo!(),
+        }
+        todo!()
     }
 
     // grow
@@ -103,6 +112,6 @@ impl<T: Send> Queue<T> {
             unsafe { ptr = ptr.add(1) };
         }
 
-        self.len.fetch_add(num_items, Ordering::Release);
+        self.len.fetch_add(num_items as isize, Ordering::Release);
     }
 }
