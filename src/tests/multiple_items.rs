@@ -1,8 +1,11 @@
 use crate::queue::Queue;
 use orx_concurrent_bag::*;
+use std::fmt::Debug;
+use test_case::test_matrix;
 
-#[test]
-fn con_just_extend() {
+#[test_matrix([|x| x, |x| x.to_string()])]
+fn con_just_extend<T: Send + Clone + Ord + Debug>(f: impl Fn(usize) -> T + Sync) {
+    let f = &f;
     let num_extenders = 4;
     let num_ticks = 1000;
 
@@ -15,9 +18,9 @@ fn con_just_extend() {
     for t in 0..num_extenders {
         for i in 0..num_ticks {
             let value = t * num_ticks + i;
-            let items = [value, 1_000_000 + value, 10_000_000 + value]
+            let items = [f(value), f(1_000_000 + value), f(10_000_000 + value)]
                 .into_iter()
-                .map(|x| x + 1);
+                .map(|x| x.clone());
             expected.extend(items);
         }
     }
@@ -28,9 +31,9 @@ fn con_just_extend() {
             s.spawn(move || {
                 for i in 0..num_ticks {
                     let value = t * num_ticks + i;
-                    let items = [value, 1_000_000 + value, 10_000_000 + value]
+                    let items = [f(value), f(1_000_000 + value), f(10_000_000 + value)]
                         .into_iter()
-                        .map(|x| x + 1);
+                        .map(|x| x.clone());
                     match t.is_multiple_of(2) {
                         true => q.extend(items),
                         false => unsafe { q.extend_n_items(items, 3) },
@@ -40,13 +43,13 @@ fn con_just_extend() {
         }
     });
 
-    let mut pushed: Vec<_> = queue.as_slice().iter().copied().collect();
+    let mut pushed: Vec<_> = queue.as_slice().iter().cloned().collect();
     pushed.sort();
     assert_eq!(pushed, expected);
 }
 
-#[test]
-fn con_just_pull() {
+#[test_matrix([|x| x, |x| x.to_string()])]
+fn con_just_pull<T: Send + Clone + Ord + Debug>(f: impl Fn(usize) -> T + Sync) {
     let num_pullers = 4;
     let num_ticks = 1000;
     let chunk_size = 17;
@@ -57,9 +60,10 @@ fn con_just_pull() {
     let collected = ConcurrentBag::new();
 
     for i in 0..capacity {
-        queue.push(i);
+        queue.push(f(i));
     }
-    let expected: Vec<_> = queue.as_slice().iter().copied().collect();
+    let mut expected: Vec<_> = queue.as_slice().iter().cloned().collect();
+    expected.sort();
 
     let q = &queue;
     std::thread::scope(|s| {
@@ -76,11 +80,13 @@ fn con_just_pull() {
 
     let mut collected = collected.into_inner().to_vec();
     collected.sort();
+
     assert_eq!(collected, expected);
 }
 
-#[test]
-fn con_extend_and_pull() {
+#[test_matrix([|x| x, |x| x.to_string()])]
+fn con_extend_and_pull<T: Send + Clone + Ord + Debug>(f: impl Fn(usize) -> T + Sync) {
+    let f = &f;
     let num_extenders = 4;
     let num_pullers = 4;
     let num_ticks = 1000;
@@ -97,9 +103,9 @@ fn con_extend_and_pull() {
             s.spawn(move || {
                 for i in 0..num_ticks {
                     let value = t * num_ticks + i;
-                    let items = [value, 1_000_000 + value, 10_000_000 + value]
+                    let items = [f(value), f(1_000_000 + value), f(10_000_000 + value)]
                         .into_iter()
-                        .map(|x| x + 1);
+                        .map(|x| x.clone());
                     match t.is_multiple_of(2) {
                         true => q.extend(items),
                         false => unsafe { q.extend_n_items(items, 3) },
