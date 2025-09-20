@@ -1,15 +1,15 @@
 use crate::state::ConcurrentQueueState;
-use orx_pinned_vec::ConcurrentPinnedVec;
-use std::{marker::PhantomData, mem::ManuallyDrop, sync::atomic::Ordering};
+use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
+use std::{marker::PhantomData, sync::atomic::Ordering};
 
 pub struct ConcurrentQueue<T, P>
 where
     T: Send,
     P: ConcurrentPinnedVec<T>,
 {
-    phantom: PhantomData<T>,
     vec: P,
     state: ConcurrentQueueState,
+    phantom: PhantomData<T>,
 }
 
 unsafe impl<T, P> Sync for ConcurrentQueue<T, P>
@@ -34,7 +34,23 @@ where
                 unsafe { ptr.drop_in_place() };
             }
         }
-        // let _vec = unsafe { Vec::from_raw_parts(self.data, 0, self.capacity) };
+        unsafe { self.vec.set_pinned_vec_len(0) };
+    }
+}
+
+impl<T, P> From<P> for ConcurrentQueue<T, P::ConPinnedVec>
+where
+    T: Send,
+    P: IntoConcurrentPinnedVec<T>,
+{
+    fn from(vec: P) -> Self {
+        let state = ConcurrentQueueState::new_for_vec(vec.len());
+        let vec = vec.into_concurrent();
+        Self {
+            vec,
+            state,
+            phantom: PhantomData,
+        }
     }
 }
 
