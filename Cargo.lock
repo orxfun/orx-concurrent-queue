@@ -60,6 +60,7 @@ dependencies = [
  "orx-concurrent-bag",
  "orx-concurrent-iter 3.1.0",
  "orx-concurrent-vec",
+ "orx-fixed-vec 3.19.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
  "orx-pinned-concurrent-col 2.15.0",
  "orx-pinned-vec 3.17.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
  "orx-split-vec 3.19.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
