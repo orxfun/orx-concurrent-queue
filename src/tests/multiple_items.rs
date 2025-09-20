@@ -31,7 +31,10 @@ fn con_just_extend() {
                     let items = [value, 1_000_000 + value, 10_000_000 + value]
                         .into_iter()
                         .map(|x| x + 1);
-                    q.extend(items);
+                    match t.is_multiple_of(2) {
+                        true => q.extend(items),
+                        false => unsafe { q.extend_n_items(items, 3) },
+                    }
                 }
             });
         }
