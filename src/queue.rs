@@ -1,11 +1,6 @@
+use orx_concurrent_iter::implementations::array_utils::ArrayIntoSeqIter;
 use std::mem::ManuallyDrop;
 use std::sync::atomic::{AtomicIsize, AtomicUsize, Ordering};
-
-const MAX_NUM_POPPERS: usize = 124;
-const OVERFLOWN_THRESHOLD: usize = usize::MAX - MAX_NUM_POPPERS;
-const fn has_overflown(prev: usize) -> bool {
-    prev == 0 || prev > OVERFLOWN_THRESHOLD
-}
 
 pub struct Queue<T: Send> {
     capacity: usize,
@@ -56,32 +51,70 @@ impl<T: Send> Queue<T> {
     // shrink
 
     pub fn pop(&self) -> Option<T> {
-        let prev = self.len.fetch_sub(1, Ordering::Acquire);
-        match prev {
+        let previous = self.len.fetch_sub(1, Ordering::Acquire);
+        match previous {
             p if p <= 0 => {
                 let current = p - 1;
                 while self
                     .len
-                    .compare_exchange_weak(current, prev, Ordering::Acquire, Ordering::Relaxed)
+                    .compare_exchange_weak(current, p, Ordering::Acquire, Ordering::Relaxed)
                     .is_err()
                 {}
                 None
             }
             _ => {
                 let idx = self.popped.fetch_add(1, Ordering::Acquire);
-                while self.pushed.load(Ordering::Relaxed) <= idx {}
+                // while self.pushed.load(Ordering::Relaxed) <= idx {}
                 let value = unsafe { self.ptr(idx).read() };
                 Some(value)
             }
         }
     }
 
-    pub fn pull(&self, chunk_size: usize) {
-        let prev = self.len.fetch_sub(chunk_size as isize, Ordering::Acquire);
-        match prev {
-            _ => todo!(),
+    pub fn pull(&self, chunk_size: usize) -> Option<ArrayIntoSeqIter<T, &Self>> {
+        match chunk_size {
+            0 => None,
+            chunk_size => {
+                let chunk_size_i = chunk_size as isize;
+
+                let previous = self.len.fetch_sub(chunk_size_i, Ordering::Acquire);
+                match previous {
+                    p if p <= 0 => {
+                        // no item was available
+                        let current = p - chunk_size_i;
+                        while self
+                            .len
+                            .compare_exchange_weak(current, p, Ordering::Acquire, Ordering::Relaxed)
+                            .is_err()
+                        {}
+                        None
+                    }
+                    p if p < chunk_size_i => {
+                        // there were items, but fewer than chunk_size
+                        let current = p - chunk_size_i;
+                        while self
+                            .len
+                            .compare_exchange_weak(current, 0, Ordering::Acquire, Ordering::Relaxed)
+                            .is_err()
+                        {}
+
+                        let chunk_size = p as usize;
+                        let idx = self.popped.fetch_add(chunk_size, Ordering::Acquire);
+                        let begin = unsafe { self.ptr(idx) };
+                        let end = unsafe { begin.add(chunk_size - 1) };
+                        let iter = ArrayIntoSeqIter::new(begin, end, None, self);
+                        Some(iter)
+                    }
+                    _ => {
+                        let idx = self.popped.fetch_add(chunk_size, Ordering::Acquire);
+                        let begin = unsafe { self.ptr(idx) };
+                        let end = unsafe { begin.add(chunk_size - 1) };
+                        let iter = ArrayIntoSeqIter::new(begin, end, None, self);
+                        Some(iter)
+                    }
+                }
+            }
         }
-        todo!()
     }
 
     // grow
