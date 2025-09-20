@@ -89,8 +89,13 @@ impl<T: Send> Queue<T> {
         I: IntoIterator<IntoIter = Iter, Item = T>,
     {
         let values = values.into_iter();
-        let len = values.len();
-        let idx = self.pushed.fetch_add(len, Ordering::Acquire);
+        let num_items = values.len();
+        unsafe { self.extend_n_items(values, num_items) };
+    }
+
+    pub unsafe fn extend_n_items(&self, values: impl IntoIterator<Item = T>, num_items: usize) {
+        let values = values.into_iter();
+        let idx = self.pushed.fetch_add(num_items, Ordering::Acquire);
 
         let mut ptr = unsafe { self.ptr(idx) };
         for value in values {
@@ -98,6 +103,6 @@ impl<T: Send> Queue<T> {
             unsafe { ptr = ptr.add(1) };
         }
 
-        self.len.fetch_add(len, Ordering::Release);
+        self.len.fetch_add(num_items, Ordering::Release);
     }
 }
