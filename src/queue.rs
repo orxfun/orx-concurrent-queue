@@ -14,6 +14,14 @@ unsafe impl<T: Send> Sync for Queue<T> {}
 
 impl<T: Send> Drop for Queue<T> {
     fn drop(&mut self) {
+        if core::mem::needs_drop::<T>() {
+            let popped = self.popped.load(Ordering::Relaxed);
+            let pushed = self.pushed.load(Ordering::Relaxed);
+            for i in popped..pushed {
+                let ptr = unsafe { self.ptr(i) };
+                unsafe { ptr.drop_in_place() };
+            }
+        }
         let _vec = unsafe { Vec::from_raw_parts(self.data, 0, self.capacity) };
     }
 }

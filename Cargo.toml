@@ -11,3 +11,4 @@ orx-concurrent-iter = { path = "../orx-concurrent-iter", registry = "artifactory
 orx-concurrent-vec = { version = "3.8.0", registry = "artifactory" }
 orx-pinned-vec = { version = "3.17.0", registry = "artifactory" }
 orx-split-vec = { version = "3.19.0", registry = "artifactory" }
+test-case = { version = "3.3.1", registry = "artifactory" }

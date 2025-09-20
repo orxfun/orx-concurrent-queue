@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "cfg-if"
+version = "1.0.3"
+source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+checksum = "2fd1289c04a9ea8cb22300a459a72a385d7c73d3259e2ed7dcb2af674838cfa9"
+
+[[package]]
 name = "orx-concurrent-bag"
 version = "3.1.0"
 dependencies = [
@@ -56,6 +62,7 @@ dependencies = [
  "orx-concurrent-vec",
  "orx-pinned-vec 3.17.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
  "orx-split-vec 3.19.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
+ "test-case",
 ]
 
 [[package]]
@@ -203,3 +210,71 @@ dependencies = [
  "orx-pinned-vec 3.17.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
  "orx-pseudo-default 2.1.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
 ]
+
+[[package]]
+name = "proc-macro2"
+version = "1.0.101"
+source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+checksum = "89ae43fd86e4158d6db51ad8e2b80f313af9cc74f5c0e03ccb87de09998732de"
+dependencies = [
+ "unicode-ident",
+]
+
+[[package]]
+name = "quote"
+version = "1.0.40"
+source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
+dependencies = [
+ "proc-macro2",
+]
+
+[[package]]
+name = "syn"
+version = "2.0.106"
+source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+checksum = "ede7c438028d4436d71104916910f5bb611972c5cfd7f89b8300a8186e6fada6"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
+]
+
+[[package]]
+name = "test-case"
+version = "3.3.1"
+source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+checksum = "eb2550dd13afcd286853192af8601920d959b14c401fcece38071d53bf0768a8"
+dependencies = [
+ "test-case-macros",
+]
+
+[[package]]
+name = "test-case-core"
+version = "3.3.1"
+source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+checksum = "adcb7fd841cd518e279be3d5a3eb0636409487998a4aff22f3de87b81e88384f"
+dependencies = [
+ "cfg-if",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "test-case-macros"
+version = "3.3.1"
+source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+checksum = "5c89e72a01ed4c579669add59014b9a524d609c0c88c6a585ce37485879f6ffb"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+ "test-case-core",
+]
+
+[[package]]
+name = "unicode-ident"
+version = "1.0.19"
+source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+checksum = "f63a545481291138910575129486daeaf8ac54aee4387fe7906919f7830c7d9d"
