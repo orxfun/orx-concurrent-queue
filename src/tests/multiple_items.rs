@@ -3,11 +3,16 @@ use orx_concurrent_bag::*;
 use std::fmt::Debug;
 use test_case::test_matrix;
 
+#[cfg(miri)]
+const N: usize = 51;
+#[cfg(not(miri))]
+const N: usize = 4735;
+
 #[test_matrix([|x| x, |x| x.to_string()])]
 fn con_just_extend<T: Send + Clone + Ord + Debug>(f: impl Fn(usize) -> T + Sync) {
     let f = &f;
     let num_extenders = 4;
-    let num_ticks = 1000;
+    let num_ticks = N;
 
     let capacity = num_extenders * num_ticks * 3;
 
@@ -51,7 +56,7 @@ fn con_just_extend<T: Send + Clone + Ord + Debug>(f: impl Fn(usize) -> T + Sync)
 #[test_matrix([|x| x, |x| x.to_string()])]
 fn con_just_pull<T: Send + Clone + Ord + Debug>(f: impl Fn(usize) -> T + Sync) {
     let num_pullers = 4;
-    let num_ticks = 1000;
+    let num_ticks = N;
     let chunk_size = 17;
 
     let capacity = num_pullers * num_ticks;
@@ -89,7 +94,7 @@ fn con_extend_and_pull<T: Send + Clone + Ord + Debug>(f: impl Fn(usize) -> T + S
     let f = &f;
     let num_extenders = 4;
     let num_pullers = 4;
-    let num_ticks = 1000;
+    let num_ticks = N;
     let chunk_size = 17;
 
     let capacity = num_extenders * num_ticks * 3;

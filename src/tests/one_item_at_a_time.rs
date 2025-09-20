@@ -3,11 +3,16 @@ use orx_concurrent_bag::*;
 use std::fmt::Debug;
 use test_case::test_matrix;
 
+#[cfg(miri)]
+const N: usize = 51;
+#[cfg(not(miri))]
+const N: usize = 4735;
+
 #[test_matrix([|x| x, |x| x.to_string()])]
 fn con_just_push<T: Send + Clone + Ord + Debug>(f: impl Fn(usize) -> T + Sync) {
     let f = &f;
     let num_pushers = 4;
-    let num_ticks = 20;
+    let num_ticks = N;
 
     let capacity = num_pushers * num_ticks;
 
@@ -36,7 +41,7 @@ fn con_just_push<T: Send + Clone + Ord + Debug>(f: impl Fn(usize) -> T + Sync) {
 #[test_matrix([|x| x, |x| x.to_string()])]
 fn con_just_pop<T: Send + Clone + Ord + Debug>(f: impl Fn(usize) -> T + Sync) {
     let num_poppers = 4;
-    let num_ticks = 1000;
+    let num_ticks = N;
 
     let capacity = num_poppers * num_ticks;
 
@@ -74,7 +79,7 @@ fn con_push_pop<T: Send + Clone + Ord + Debug>(f: impl Fn(usize) -> T + Sync) {
     let f = &f;
     let num_pushers = 4;
     let num_poppers = 4;
-    let num_ticks = 1000;
+    let num_ticks = N;
 
     let capacity = num_pushers * num_ticks;
     let queue = Queue::new(capacity);
