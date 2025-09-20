@@ -30,7 +30,7 @@ where
             let popped = s.popped.load(Ordering::Relaxed);
             let pushed = s.pushed.load(Ordering::Relaxed);
             for i in popped..pushed {
-                let ptr = unsafe { self.vec.get_ptr_mut(i) };
+                let ptr = unsafe { self.ptr(i) };
                 unsafe { ptr.drop_in_place() };
             }
         }
@@ -59,4 +59,16 @@ where
     T: Send,
     P: ConcurrentPinnedVec<T>,
 {
+    #[inline(always)]
+    unsafe fn ptr(&self, idx: usize) -> *mut T {
+        unsafe { self.vec.get_ptr_mut(idx) }
+    }
+
+    // shrink
+
+    pub fn pop(&self) -> Option<T> {
+        self.state
+            .pop_idx()
+            .map(|idx| unsafe { self.ptr(idx).read() })
+    }
 }
