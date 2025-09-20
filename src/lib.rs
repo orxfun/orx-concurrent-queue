@@ -18,5 +18,7 @@ extern crate alloc;
 mod tests;
 
 mod queue;
+mod queue_fixed;
+mod state;
 
-pub use queue::Queue;
+pub use queue_fixed::Queue;
