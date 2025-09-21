@@ -101,6 +101,7 @@ where
         let (h, idx) = self.state.grow_handle(1);
 
         self.assert_has_capacity_for(idx);
+        // TODO: this loop is not required for FixedVec. It can be avoided by abstracting it into PinnedConVec.
         loop {
             match WritePermit::new(self.vec.capacity(), idx) {
                 WritePermit::JustWrite => {
