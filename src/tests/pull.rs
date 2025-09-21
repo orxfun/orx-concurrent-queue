@@ -16,11 +16,11 @@ const N: usize = 51;
 #[cfg(not(miri))]
 const N: usize = 4735;
 
-const NUM_POPPERS: usize = 4;
+const NUM_PULLERS: usize = 4;
 
 #[test_matrix(
     [TryPull::Fewer, TryPull::More],
-    [FixedVec::new(N * NUM_POPPERS), SplitVec::with_doubling_growth_and_max_concurrent_capacity(), SplitVec::with_linear_growth_and_fragments_capacity(10, 64)],
+    [FixedVec::new(N * NUM_PULLERS), SplitVec::with_doubling_growth_and_max_concurrent_capacity(), SplitVec::with_linear_growth_and_fragments_capacity(10, 64)],
     [|x| x, |x| x.to_string()],
     [1, 14, 10000])
 ]
@@ -31,7 +31,7 @@ where
 {
     assert!(vec.is_empty());
 
-    let num_poppers = NUM_POPPERS;
+    let num_poppers = NUM_PULLERS;
     let num_ticks = N;
 
     let capacity = num_poppers * num_ticks;
