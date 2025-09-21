@@ -59,9 +59,8 @@ where
     T: Send,
     P: ConcurrentPinnedVec<T>,
 {
-    #[inline(always)]
-    unsafe fn ptr(&self, idx: usize) -> *mut T {
-        unsafe { self.vec.get_ptr_mut(idx) }
+    pub fn len(&self, order: Ordering) -> usize {
+        self.state.len.load(order).max(0) as usize
     }
 
     // shrink
@@ -83,20 +82,6 @@ where
 
     // grow
 
-    fn assert_has_capacity_for(&self, idx: usize) {
-        assert!(
-            idx < self.vec.max_capacity(),
-            "Out of capacity. Underlying pinned vector cannot grow any further while being concurrently safe."
-        );
-    }
-
-    fn grow_to(&self, new_capacity: usize) {
-        let new_capacity = self
-            .vec
-            .grow_to(new_capacity)
-            .expect("The underlying pinned vector reached its capacity and failed to grow");
-    }
-
     pub fn push(&self, value: T) {
         let (h, idx) = self.state.grow_handle(1);
 
@@ -109,7 +94,7 @@ where
                     break;
                 }
                 WritePermit::GrowThenWrite => {
-                    self.grow_to(idx);
+                    self.grow_to(idx + 1);
                     unsafe { self.ptr(idx).write(value) };
                     break;
                 }
@@ -118,5 +103,26 @@ where
         }
 
         h.release();
+    }
+
+    // helpers
+
+    #[inline(always)]
+    unsafe fn ptr(&self, idx: usize) -> *mut T {
+        unsafe { self.vec.get_ptr_mut(idx) }
+    }
+
+    fn assert_has_capacity_for(&self, idx: usize) {
+        assert!(
+            idx < self.vec.max_capacity(),
+            "Out of capacity. Underlying pinned vector cannot grow any further while being concurrently safe."
+        );
+    }
+
+    fn grow_to(&self, new_capacity: usize) {
+        _ = self
+            .vec
+            .grow_to(new_capacity)
+            .expect("The underlying pinned vector reached its capacity and failed to grow");
     }
 }
