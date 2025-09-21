@@ -71,4 +71,13 @@ where
             .pop_idx()
             .map(|idx| unsafe { self.ptr(idx).read() })
     }
+
+    pub fn pull(&self, chunk_size: usize) -> Option<impl ExactSizeIterator<Item = T>> {
+        self.state
+            .pull_idx_and_len(chunk_size)
+            .map(|(idx, chunk_size)| {
+                let range = idx..(idx + chunk_size);
+                unsafe { self.vec.ptr_iter_unchecked(range) }.map(|ptr| unsafe { ptr.read() })
+            })
+    }
 }

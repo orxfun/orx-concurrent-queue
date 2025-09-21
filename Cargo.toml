@@ -10,7 +10,7 @@ orx-concurrent-bag = { path = "../orx-concurrent-bag", registry = "artifactory" 
 orx-concurrent-iter = { path = "../orx-concurrent-iter", registry = "artifactory" }
 orx-pinned-concurrent-col = { path = "../orx-pinned-concurrent-col", registry = "artifactory" }
 orx-concurrent-vec = { version = "3.8.0", registry = "artifactory" }
-orx-pinned-vec = { version = "3.17.0", registry = "artifactory" }
-orx-split-vec = { version = "3.19.0", registry = "artifactory" }
-orx-fixed-vec = { version = "3.19.0", registry = "artifactory" }
+orx-pinned-vec = { path = "../orx-pinned-vec", registry = "artifactory" }
+orx-split-vec = { path = "../orx-split-vec", registry = "artifactory" }
+orx-fixed-vec = { path = "../orx-fixed-vec", registry = "artifactory" }
 test-case = { version = "3.3.1", registry = "artifactory" }
