@@ -8,7 +8,7 @@ where
     P: ConcurrentPinnedVec<T>,
 {
     vec: P,
-    state: State,
+    pub state: State,
     phantom: PhantomData<T>,
 }
 
@@ -28,7 +28,7 @@ where
         if core::mem::needs_drop::<T>() {
             let s = &self.state;
             let popped = s.popped.load(Ordering::Relaxed);
-            let pushed = s.pushed.load(Ordering::Relaxed);
+            let pushed = s.push_reserved.load(Ordering::Relaxed);
             for i in popped..pushed {
                 let ptr = unsafe { self.ptr(i) };
                 unsafe { ptr.drop_in_place() };
@@ -65,10 +65,14 @@ where
 
     // shrink
 
+    // while self.pushed.load(Ordering::Relaxed) <= idx {}
+
     pub fn pop(&self) -> Option<T> {
-        self.state
-            .pop_idx()
-            .map(|idx| unsafe { self.ptr(idx).read() })
+        self.state.pop_idx().map(|idx| {
+            while self.state.push_reserved.load(Ordering::SeqCst) <= idx {}
+            while self.state.pushed.load(Ordering::SeqCst) <= idx {}
+            unsafe { self.ptr(idx).read() }
+        })
     }
 
     pub fn pull(&self, chunk_size: usize) -> Option<impl ExactSizeIterator<Item = T>> {

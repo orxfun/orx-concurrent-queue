@@ -1,8 +1,10 @@
 use core::sync::atomic::{AtomicIsize, AtomicUsize};
 use std::sync::atomic::Ordering;
 
+#[derive(Debug)]
 pub struct State {
     pub(super) len: AtomicIsize,
+    pub(super) push_reserved: AtomicUsize,
     pub(super) pushed: AtomicUsize,
     pub(super) popped: AtomicUsize,
 }
@@ -11,6 +13,7 @@ impl State {
     pub fn new_for_vec(len: usize) -> Self {
         Self {
             len: (len as isize).into(),
+            push_reserved: len.into(),
             pushed: len.into(),
             popped: 0.into(),
         }
@@ -23,12 +26,16 @@ impl State {
         match previous {
             p if p <= 0 => {
                 // no item to pop
-                let current = p - 1;
-                while self
-                    .len
-                    .compare_exchange_weak(current, p, Ordering::Acquire, Ordering::Relaxed)
-                    .is_err()
-                {}
+
+                _ = self.len.fetch_add(1, Ordering::Release);
+
+                // let current = p - 1;
+                // while self
+                //     .len
+                //     .compare_exchange(current, p, Ordering::Acquire, Ordering::Relaxed)
+                //     .is_err()
+                // {}
+
                 None
             }
             _ => {
@@ -44,23 +51,31 @@ impl State {
         let previous = self.len.fetch_sub(chunk_size_i, Ordering::Acquire);
         match previous {
             p if p <= 0 => {
-                // there are no items
-                let current = p - chunk_size_i;
-                while self
-                    .len
-                    .compare_exchange_weak(current, p, Ordering::Acquire, Ordering::Relaxed)
-                    .is_err()
-                {}
+                // there are no items to pop
+
+                _ = self.len.fetch_add(chunk_size_i, Ordering::Release);
+
+                // let current = p - chunk_size_i;
+                // while self
+                //     .len
+                //     .compare_exchange(current, p, Ordering::Acquire, Ordering::Relaxed)
+                //     .is_err()
+                // {}
+
                 None
             }
             p if p < chunk_size_i => {
                 // there are items, but fewer than chunk_size
-                let current = p - chunk_size_i;
-                while self
-                    .len
-                    .compare_exchange_weak(current, 0, Ordering::Acquire, Ordering::Relaxed)
-                    .is_err()
-                {}
+
+                let add_back = chunk_size_i - p;
+                _ = self.len.fetch_add(add_back, Ordering::Release);
+
+                // let current = p - chunk_size_i;
+                // while self
+                //     .len
+                //     .compare_exchange(current, 0, Ordering::Acquire, Ordering::Relaxed)
+                //     .is_err()
+                // {}
 
                 let chunk_size = p as usize;
                 let idx = self.popped.fetch_add(chunk_size, Ordering::Acquire);
@@ -86,16 +101,36 @@ impl State {
 pub struct GrowHandle<'a> {
     state: &'a State,
     num_items: usize,
+    idx: usize,
 }
 
 impl<'a> GrowHandle<'a> {
     fn create(state: &'a State, num_items: usize) -> (Self, usize) {
-        let idx = state.pushed.fetch_add(num_items, Ordering::Acquire);
-        let handle = Self { state, num_items };
+        let idx = state.push_reserved.fetch_add(num_items, Ordering::Acquire);
+        let handle = Self {
+            state,
+            num_items,
+            idx,
+        };
         (handle, idx)
     }
 
     pub fn release(self) {
+        while self
+            .state
+            .pushed
+            .compare_exchange(
+                self.idx,
+                self.idx + self.num_items,
+                Ordering::AcqRel,
+                Ordering::Relaxed,
+            )
+            .is_err()
+        {}
+        // self.state
+        //     .pushed
+        //     .fetch_add(self.num_items, Ordering::Release);
+
         self.state
             .len
             .fetch_add(self.num_items as isize, Ordering::Release);
