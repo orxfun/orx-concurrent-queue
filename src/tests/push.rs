@@ -23,12 +23,10 @@ where
 {
     assert!(vec.is_empty());
 
-    let num_ticks = N;
-
     let mut expected = vec![];
     for t in 0..NUM_PUSHERS {
-        for i in 0..num_ticks {
-            expected.push(f(t * num_ticks + i));
+        for i in 0..N {
+            expected.push(f(t * N + i));
         }
     }
     expected.sort();
@@ -40,8 +38,8 @@ where
     std::thread::scope(|s| {
         for t in 0..NUM_PUSHERS {
             s.spawn(move || {
-                for i in 0..num_ticks {
-                    q.push(f(t * num_ticks + i));
+                for i in 0..N {
+                    q.push(f(t * N + i));
                 }
             });
         }

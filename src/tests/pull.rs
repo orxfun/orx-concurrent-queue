@@ -31,10 +31,7 @@ where
 {
     assert!(vec.is_empty());
 
-    let num_poppers = NUM_PULLERS;
-    let num_ticks = N;
-
-    let capacity = num_poppers * num_ticks;
+    let capacity = NUM_PULLERS * N;
     for i in 0..capacity {
         vec.push(f(i));
     }
@@ -44,12 +41,12 @@ where
     let collected = ConcurrentBag::new();
 
     let num_pop = match p {
-        TryPull::Fewer => num_ticks.saturating_sub(25) / chunk_size,
-        TryPull::More => (num_ticks / chunk_size) + 25,
+        TryPull::Fewer => N.saturating_sub(25) / chunk_size,
+        TryPull::More => (N / chunk_size) + 25,
     };
 
     std::thread::scope(|s| {
-        for _ in 0..num_poppers {
+        for _ in 0..NUM_PULLERS {
             s.spawn(|| {
                 for _ in 0..num_pop {
                     if let Some(value) = q.pull(chunk_size) {

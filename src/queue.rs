@@ -88,7 +88,7 @@ where
 
         // TODO: this loop is not required for FixedVec. It can be avoided by abstracting it into PinnedConVec.
         loop {
-            match WritePermit::new(self.vec.capacity(), idx) {
+            match WritePermit::for_one(self.vec.capacity(), idx) {
                 WritePermit::JustWrite => {
                     unsafe { self.ptr(idx).write(value) };
                     break;
@@ -115,21 +115,22 @@ where
 
         if num_items > 0 {
             let (h, idx) = self.state.grow_handle(num_items);
+            let end_idx = idx + num_items;
             let last_idx = idx + num_items - 1;
             self.assert_has_capacity_for(last_idx);
 
             loop {
-                match WritePermit::new(self.vec.capacity(), last_idx) {
+                match WritePermit::for_many(self.vec.capacity(), idx, last_idx) {
                     WritePermit::JustWrite => {
-                        let iter = unsafe { self.vec.ptr_iter_unchecked(idx..(last_idx + 1)) };
+                        let iter = unsafe { self.vec.ptr_iter_unchecked(idx..end_idx) };
                         for (p, value) in iter.zip(values) {
                             unsafe { p.write(value) };
                         }
                         break;
                     }
                     WritePermit::GrowThenWrite => {
-                        self.grow_to(last_idx + 1);
-                        let iter = unsafe { self.vec.ptr_iter_unchecked(idx..(last_idx + 1)) };
+                        self.grow_to(end_idx);
+                        let iter = unsafe { self.vec.ptr_iter_unchecked(idx..end_idx) };
                         for (p, value) in iter.zip(values) {
                             unsafe { p.write(value) };
                         }
