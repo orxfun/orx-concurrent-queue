@@ -20,6 +20,6 @@ mod tests;
 mod convec_state;
 mod new;
 mod queue;
-mod queue_state;
+mod state;
 
 pub use queue::ConcurrentQueue;

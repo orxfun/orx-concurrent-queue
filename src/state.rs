@@ -1,13 +1,13 @@
 use core::sync::atomic::{AtomicIsize, AtomicUsize};
 use std::sync::atomic::Ordering;
 
-pub struct ConcurrentQueueState {
+pub struct State {
     pub(super) len: AtomicIsize,    // written_len
     pub(super) pushed: AtomicUsize, // len
     pub(super) popped: AtomicUsize,
 }
 
-impl ConcurrentQueueState {
+impl State {
     pub fn new_for_vec(len: usize) -> Self {
         Self {
             len: (len as isize).into(),
@@ -84,12 +84,12 @@ impl ConcurrentQueueState {
 // grow handle
 
 pub struct GrowHandle<'a> {
-    state: &'a ConcurrentQueueState,
+    state: &'a State,
     num_items: usize,
 }
 
 impl<'a> GrowHandle<'a> {
-    fn create(state: &'a ConcurrentQueueState, num_items: usize) -> (Self, usize) {
+    fn create(state: &'a State, num_items: usize) -> (Self, usize) {
         let idx = state.pushed.fetch_add(num_items, Ordering::Acquire);
         let handle = Self { state, num_items };
         (handle, idx)

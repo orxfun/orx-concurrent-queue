@@ -1,4 +1,4 @@
-use crate::{convec_state::WritePermit, new::DefaultConVec, queue_state::ConcurrentQueueState};
+use crate::{convec_state::WritePermit, new::DefaultConVec, state::State};
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
 use std::{marker::PhantomData, sync::atomic::Ordering};
 
@@ -8,7 +8,7 @@ where
     P: ConcurrentPinnedVec<T>,
 {
     vec: P,
-    state: ConcurrentQueueState,
+    state: State,
     phantom: PhantomData<T>,
 }
 
@@ -44,7 +44,7 @@ where
     P: IntoConcurrentPinnedVec<T>,
 {
     fn from(vec: P) -> Self {
-        let state = ConcurrentQueueState::new_for_vec(vec.len());
+        let state = State::new_for_vec(vec.len());
         let vec = vec.into_concurrent();
         Self {
             vec,
