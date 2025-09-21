@@ -121,12 +121,18 @@ where
             loop {
                 match WritePermit::new(self.vec.capacity(), last_idx) {
                     WritePermit::JustWrite => {
-                        // unsafe { self.ptr(idx).write(value) };
+                        let iter = unsafe { self.vec.ptr_iter_unchecked(idx..(last_idx + 1)) };
+                        for (p, value) in iter.zip(values) {
+                            unsafe { p.write(value) };
+                        }
                         break;
                     }
                     WritePermit::GrowThenWrite => {
                         self.grow_to(last_idx + 1);
-                        // unsafe { self.ptr(idx).write(value) };
+                        let iter = unsafe { self.vec.ptr_iter_unchecked(idx..(last_idx + 1)) };
+                        for (p, value) in iter.zip(values) {
+                            unsafe { p.write(value) };
+                        }
                         break;
                     }
                     WritePermit::Spin => {}
