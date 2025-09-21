@@ -7,14 +7,12 @@ fn main() {
 
     let capacity = num_poppers * num_ticks;
 
-    let mut queue = Queue::new(capacity);
+    let queue = ConcurrentQueue::new();
     let collected = ConcurrentBag::new();
 
     for i in 0..capacity {
         queue.push(i);
     }
-
-    dbg!(queue.as_slice().len());
 
     std::thread::scope(|s| {
         for _ in 0..num_poppers {

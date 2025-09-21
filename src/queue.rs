@@ -1,8 +1,8 @@
-use crate::{convec_state::WritePermit, queue_state::ConcurrentQueueState};
+use crate::{convec_state::WritePermit, new::DefaultConVec, queue_state::ConcurrentQueueState};
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
 use std::{marker::PhantomData, sync::atomic::Ordering};
 
-pub struct ConcurrentQueue<T, P>
+pub struct ConcurrentQueue<T, P = DefaultConVec<T>>
 where
     T: Send,
     P: ConcurrentPinnedVec<T>,

@@ -5,12 +5,10 @@ edition = "2024"
 publish = ["artifactory"]
 
 [dependencies]
-# orx-concurrent-bag = { version = "3.1.0", registry = "artifactory" }
-orx-concurrent-bag = { path = "../orx-concurrent-bag", registry = "artifactory" }
-orx-concurrent-iter = { path = "../orx-concurrent-iter", registry = "artifactory" }
-orx-pinned-concurrent-col = { path = "../orx-pinned-concurrent-col", registry = "artifactory" }
-orx-concurrent-vec = { version = "3.8.0", registry = "artifactory" }
-orx-pinned-vec = { path = "../orx-pinned-vec", registry = "artifactory" }
-orx-split-vec = { path = "../orx-split-vec", registry = "artifactory" }
-orx-fixed-vec = { path = "../orx-fixed-vec", registry = "artifactory" }
+orx-pinned-vec = { git = "https://github.com/orxfun/orx-pinned-vec", branch = "concurrent-queue-support" }
+orx-split-vec = { git = "https://github.com/orxfun/orx-split-vec", branch = "support-for-concurrent-queue" }
+orx-fixed-vec = { git = "https://github.com/orxfun/orx-fixed-vec", branch = "support-for-concurrent-queue" }
+
+[dev-dependencies]
+orx-concurrent-bag = { version = "3.1.0", registry = "artifactory" }
 test-case = { version = "3.3.1", registry = "artifactory" }

@@ -18,8 +18,8 @@ extern crate alloc;
 mod tests;
 
 mod convec_state;
+mod new;
 mod queue;
-mod queue_fixed;
 mod queue_state;
 
-pub use queue_fixed::Queue;
+pub use queue::ConcurrentQueue;
