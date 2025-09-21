@@ -2,8 +2,8 @@ use core::sync::atomic::{AtomicIsize, AtomicUsize};
 use std::sync::atomic::Ordering;
 
 pub struct State {
-    pub(super) len: AtomicIsize,    // written_len
-    pub(super) pushed: AtomicUsize, // len
+    pub(super) len: AtomicIsize,
+    pub(super) pushed: AtomicUsize,
     pub(super) popped: AtomicUsize,
 }
 
