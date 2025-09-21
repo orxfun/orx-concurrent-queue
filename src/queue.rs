@@ -1,4 +1,4 @@
-use crate::state::ConcurrentQueueState;
+use crate::{convec_state::WritePermit, queue_state::ConcurrentQueueState};
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
 use std::{marker::PhantomData, sync::atomic::Ordering};
 
@@ -79,5 +79,43 @@ where
                 let range = idx..(idx + chunk_size);
                 unsafe { self.vec.ptr_iter_unchecked(range) }.map(|ptr| unsafe { ptr.read() })
             })
+    }
+
+    // grow
+
+    fn assert_has_capacity_for(&self, idx: usize) {
+        assert!(
+            idx < self.vec.max_capacity(),
+            "Out of capacity. Underlying pinned vector cannot grow any further while being concurrently safe."
+        );
+    }
+
+    fn grow_to(&self, new_capacity: usize) {
+        let new_capacity = self
+            .vec
+            .grow_to(new_capacity)
+            .expect("The underlying pinned vector reached its capacity and failed to grow");
+    }
+
+    pub fn push(&self, value: T) {
+        let (h, idx) = self.state.grow_handle(1);
+
+        self.assert_has_capacity_for(idx);
+        loop {
+            match WritePermit::new(self.vec.capacity(), idx) {
+                WritePermit::JustWrite => {
+                    unsafe { self.ptr(idx).write(value) };
+                    break;
+                }
+                WritePermit::GrowThenWrite => {
+                    self.grow_to(idx);
+                    unsafe { self.ptr(idx).write(value) };
+                    break;
+                }
+                WritePermit::Spin => {}
+            }
+        }
+
+        h.release();
     }
 }

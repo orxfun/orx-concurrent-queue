@@ -16,6 +16,8 @@ impl ConcurrentQueueState {
         }
     }
 
+    // shrink
+
     pub fn pop_idx(&self) -> Option<usize> {
         let previous = self.len.fetch_sub(1, Ordering::Acquire);
         match previous {
@@ -70,5 +72,36 @@ impl ConcurrentQueueState {
                 Some((idx, chunk_size))
             }
         }
+    }
+
+    // grow
+
+    pub fn init_growth(&self, num_items: usize) -> usize {
+        self.pushed.fetch_add(num_items, Ordering::Acquire)
+    }
+
+    pub fn grow_handle(&self, num_items: usize) -> (GrowHandle<'_>, usize) {
+        GrowHandle::create(self, num_items)
+    }
+}
+
+// grow handle
+
+pub struct GrowHandle<'a> {
+    state: &'a ConcurrentQueueState,
+    num_items: usize,
+}
+
+impl<'a> GrowHandle<'a> {
+    fn create(state: &'a ConcurrentQueueState, num_items: usize) -> (Self, usize) {
+        let idx = state.pushed.fetch_add(num_items, Ordering::Acquire);
+        let handle = Self { state, num_items };
+        (handle, idx)
+    }
+
+    pub fn release(self) {
+        self.state
+            .len
+            .fetch_add(self.num_items as isize, Ordering::Release);
     }
 }

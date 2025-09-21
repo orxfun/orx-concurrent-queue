@@ -17,8 +17,9 @@ extern crate alloc;
 #[cfg(test)]
 mod tests;
 
+mod convec_state;
 mod queue;
 mod queue_fixed;
-mod state;
+mod queue_state;
 
 pub use queue_fixed::Queue;
