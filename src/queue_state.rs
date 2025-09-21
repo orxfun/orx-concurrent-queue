@@ -76,10 +76,6 @@ impl ConcurrentQueueState {
 
     // grow
 
-    pub fn init_growth(&self, num_items: usize) -> usize {
-        self.pushed.fetch_add(num_items, Ordering::Acquire)
-    }
-
     pub fn grow_handle(&self, num_items: usize) -> (GrowHandle<'_>, usize) {
         GrowHandle::create(self, num_items)
     }
