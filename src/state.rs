@@ -127,9 +127,6 @@ impl<'a> GrowHandle<'a> {
             )
             .is_err()
         {}
-        // self.state
-        //     .pushed
-        //     .fetch_add(self.num_items, Ordering::Release);
 
         self.state
             .len
