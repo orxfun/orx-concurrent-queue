@@ -116,20 +116,17 @@ impl<'a> GrowHandle<'a> {
     }
 
     pub fn release(self) {
+        let prior = self.idx;
+        let new = self.idx + self.num_items;
         while self
             .state
             .pushed
-            .compare_exchange(
-                self.idx,
-                self.idx + self.num_items,
-                Ordering::AcqRel,
-                Ordering::Relaxed,
-            )
+            .compare_exchange(prior, new, Ordering::Acquire, Ordering::Relaxed)
             .is_err()
         {}
 
         self.state
             .len
-            .fetch_add(self.num_items as isize, Ordering::Release);
+            .fetch_add(self.num_items as isize, Ordering::SeqCst);
     }
 }

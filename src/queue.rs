@@ -60,7 +60,10 @@ where
     P: ConcurrentPinnedVec<T>,
 {
     pub fn len(&self, order: Ordering) -> usize {
-        self.state.len.load(order).max(0) as usize
+        match self.state.len.load(order) {
+            x if x < 0 => 0,
+            x => x as usize,
+        }
     }
 
     // shrink
