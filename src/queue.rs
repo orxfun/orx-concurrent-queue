@@ -127,40 +127,56 @@ where
     }
 
     pub fn pull(&self, chunk_size: usize) -> Option<impl ExactSizeIterator<Item = T>> {
-        let begin_idx = self.popped.fetch_add(chunk_size, Ordering::Acquire);
+        let begin_idx = self.pop_reserved.fetch_add(chunk_size, Ordering::Acquire);
         let end_idx = begin_idx + chunk_size;
-        let written = self.written.load(Ordering::Relaxed);
 
-        match begin_idx < written {
-            true => {
-                let range = match end_idx <= written {
-                    true => begin_idx..end_idx,
-                    false => {
-                        let diff = end_idx - written;
-                        let actual_end_idx = end_idx - diff;
-                        while self
-                            .popped
-                            .compare_exchange_weak(
-                                end_idx,
-                                actual_end_idx,
-                                Ordering::Release,
-                                Ordering::Relaxed,
-                            )
-                            .is_err()
-                        {}
-                        begin_idx..actual_end_idx
+        loop {
+            let written = self.written.load(Ordering::Acquire);
+
+            match begin_idx < written {
+                true => {
+                    let range = match end_idx <= written {
+                        true => begin_idx..end_idx,
+                        false => {
+                            let diff = end_idx - written;
+                            let actual_end_idx = end_idx - diff;
+                            match self
+                                .pop_reserved
+                                .compare_exchange(
+                                    end_idx,
+                                    actual_end_idx,
+                                    Ordering::Release,
+                                    Ordering::Relaxed,
+                                )
+                                .is_ok()
+                            {
+                                true => begin_idx..actual_end_idx,
+                                false => continue,
+                            }
+                        }
+                    };
+                    while self
+                        .popped
+                        .compare_exchange(
+                            range.start,
+                            range.end,
+                            Ordering::Release,
+                            Ordering::Relaxed,
+                        )
+                        .is_err()
+                    {}
+                    let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
+                    return Some(iter.map(|ptr| unsafe { ptr.read() }));
+                }
+                false => {
+                    if self
+                        .pop_reserved
+                        .compare_exchange(end_idx, begin_idx, Ordering::Release, Ordering::Relaxed)
+                        .is_ok()
+                    {
+                        return None;
                     }
-                };
-                let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
-                Some(iter.map(|ptr| unsafe { ptr.read() }))
-            }
-            false => {
-                while self
-                    .popped
-                    .compare_exchange_weak(end_idx, begin_idx, Ordering::Release, Ordering::Relaxed)
-                    .is_err()
-                {}
-                None
+                }
             }
         }
     }
