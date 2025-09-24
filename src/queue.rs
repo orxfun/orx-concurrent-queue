@@ -219,7 +219,42 @@ where
         I: IntoIterator<Item = T, IntoIter = Iter>,
         Iter: ExactSizeIterator<Item = T>,
     {
-        todo!()
+        let values = values.into_iter();
+        let num_items = values.len();
+
+        if num_items > 0 {
+            let begin_idx = self.write_reserved.fetch_add(num_items, Ordering::AcqRel);
+            let end_idx = begin_idx + num_items;
+            let last_idx = begin_idx + num_items - 1;
+            self.assert_has_capacity_for(last_idx);
+
+            loop {
+                match WritePermit::for_many(self.vec.capacity(), begin_idx, last_idx) {
+                    WritePermit::JustWrite => {
+                        let iter = unsafe { self.vec.ptr_iter_unchecked(begin_idx..end_idx) };
+                        for (p, value) in iter.zip(values) {
+                            unsafe { p.write(value) };
+                        }
+                        break;
+                    }
+                    WritePermit::GrowThenWrite => {
+                        self.grow_to(end_idx);
+                        let iter = unsafe { self.vec.ptr_iter_unchecked(begin_idx..end_idx) };
+                        for (p, value) in iter.zip(values) {
+                            unsafe { p.write(value) };
+                        }
+                        break;
+                    }
+                    WritePermit::Spin => {}
+                }
+            }
+
+            while self
+                .written
+                .compare_exchange(begin_idx, end_idx, Ordering::Release, Ordering::Relaxed)
+                .is_err()
+            {}
+        }
     }
 
     // helpers
