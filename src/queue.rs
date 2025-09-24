@@ -5,6 +5,8 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
+use crate::write_permit::WritePermit;
+
 type DefaultPinnedVec<T> = SplitVec<T, Doubling>;
 pub type DefaultConVec<T> = <DefaultPinnedVec<T> as IntoConcurrentPinnedVec<T>>::ConPinnedVec;
 
@@ -95,18 +97,23 @@ where
     // shrink
 
     pub fn pop(&self) -> Option<T> {
-        let idx = self.popped.fetch_add(1, Ordering::Acquire);
+        let mut cnt_pop = 0;
         let written = self.written.load(Ordering::Relaxed);
+        let idx = self.popped.fetch_add(1, Ordering::Acquire);
 
         match idx < written {
             true => Some(unsafe { self.ptr(idx).read() }),
             false => {
                 let current = idx + 1;
+                // _ = self.popped.fetch_sub(1, Ordering::Release);
                 while self
                     .popped
                     .compare_exchange_weak(current, idx, Ordering::Release, Ordering::Relaxed)
                     .is_err()
-                {}
+                {
+                    cnt_pop += 1;
+                    assert_ne!(cnt_pop, 1_000_000, "pop");
+                }
                 None
             }
         }
@@ -154,7 +161,34 @@ where
     // grow
 
     pub fn push(&self, value: T) {
-        todo!()
+        let mut cnt_push = 0;
+        let idx = self.reserved.fetch_add(1, Ordering::AcqRel);
+        self.assert_has_capacity_for(idx);
+
+        loop {
+            match WritePermit::for_one(self.vec.capacity(), idx) {
+                WritePermit::JustWrite => {
+                    unsafe { self.ptr(idx).write(value) };
+                    break;
+                }
+                WritePermit::GrowThenWrite => {
+                    self.grow_to(idx + 1);
+                    unsafe { self.ptr(idx).write(value) };
+                    break;
+                }
+                WritePermit::Spin => {}
+            }
+        }
+
+        let num_written = idx + 1;
+        while self
+            .written
+            .compare_exchange(idx, num_written, Ordering::Release, Ordering::Relaxed)
+            .is_err()
+        {
+            cnt_push += 1;
+            assert_ne!(cnt_push, 1_000_000, "push");
+        }
     }
 
     pub fn extend<I, Iter>(&self, values: I)
@@ -172,6 +206,7 @@ where
         unsafe { self.vec.get_ptr_mut(idx) }
     }
 
+    #[inline(always)]
     fn assert_has_capacity_for(&self, idx: usize) {
         assert!(
             idx < self.vec.max_capacity(),

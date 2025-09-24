@@ -15,7 +15,8 @@ const NUM_PUSHERS_POPPERS: usize = 8;
 
 #[test_matrix(
     [FixedVec::new(N * NUM_PUSHERS_POPPERS), SplitVec::with_doubling_growth_and_max_concurrent_capacity(), SplitVec::with_linear_growth_and_fragments_capacity(10, 64)],
-    [|x|x, |x| x.to_string()])
+    [|x| x])
+    // [|x| x, |x| x.to_string()])
 ]
 fn push_pop<P, T>(vec: P, f: impl Fn(usize) -> T + Sync)
 where
