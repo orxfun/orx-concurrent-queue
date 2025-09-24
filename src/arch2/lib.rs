@@ -17,6 +17,9 @@ extern crate alloc;
 #[cfg(test)]
 mod tests;
 
+mod convec_state;
+mod new;
 mod queue;
+mod state;
 
 pub use queue::ConcurrentQueue;
