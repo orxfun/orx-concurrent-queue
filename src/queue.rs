@@ -36,9 +36,9 @@ where
     vec: P,
     phantom: PhantomData<T>,
     written: AtomicUsize,
-    reserved: AtomicUsize,
+    write_reserved: AtomicUsize,
     popped: AtomicUsize,
-    len: usize,
+    pop_reserved: AtomicUsize,
 }
 
 unsafe impl<T, P> Sync for ConcurrentQueue<T, P>
@@ -56,7 +56,7 @@ where
     fn drop(&mut self) {
         if core::mem::needs_drop::<T>() {
             let popped = self.popped.load(Ordering::Relaxed);
-            let reserved = self.reserved.load(Ordering::Relaxed);
+            let reserved = self.write_reserved.load(Ordering::Relaxed);
             let written = self.written.load(Ordering::Relaxed);
             assert_eq!(reserved, written);
             for i in popped..written {
@@ -76,10 +76,10 @@ where
     fn from(vec: P) -> Self {
         Self {
             phantom: PhantomData,
-            len: vec.len(),
             written: vec.len().into(),
-            reserved: vec.len().into(),
+            write_reserved: vec.len().into(),
             popped: 0.into(),
+            pop_reserved: 0.into(),
             vec: vec.into_concurrent(),
         }
     }
@@ -97,24 +97,31 @@ where
     // shrink
 
     pub fn pop(&self) -> Option<T> {
-        let mut cnt_pop = 0;
-        let written = self.written.load(Ordering::Relaxed);
-        let idx = self.popped.fetch_add(1, Ordering::Acquire);
+        let idx = self.pop_reserved.fetch_add(1, Ordering::Acquire);
 
-        match idx < written {
-            true => Some(unsafe { self.ptr(idx).read() }),
-            false => {
-                let current = idx + 1;
-                // _ = self.popped.fetch_sub(1, Ordering::Release);
-                while self
-                    .popped
-                    .compare_exchange_weak(current, idx, Ordering::Release, Ordering::Relaxed)
-                    .is_err()
-                {
-                    cnt_pop += 1;
-                    assert_ne!(cnt_pop, 1_000_000, "pop");
+        loop {
+            let written = self.written.load(Ordering::Acquire);
+
+            match idx < written {
+                true => {
+                    let num_popped = idx + 1;
+                    while self
+                        .popped
+                        .compare_exchange(idx, num_popped, Ordering::Release, Ordering::Relaxed)
+                        .is_err()
+                    {}
+                    return Some(unsafe { self.ptr(idx).read() });
                 }
-                None
+                false => {
+                    let current = idx + 1;
+                    if self
+                        .pop_reserved
+                        .compare_exchange(current, idx, Ordering::Release, Ordering::Relaxed)
+                        .is_ok()
+                    {
+                        return None;
+                    }
+                }
             }
         }
     }
@@ -162,7 +169,7 @@ where
 
     pub fn push(&self, value: T) {
         let mut cnt_push = 0;
-        let idx = self.reserved.fetch_add(1, Ordering::AcqRel);
+        let idx = self.write_reserved.fetch_add(1, Ordering::AcqRel);
         self.assert_has_capacity_for(idx);
 
         loop {
@@ -187,7 +194,7 @@ where
             .is_err()
         {
             cnt_push += 1;
-            assert_ne!(cnt_push, 1_000_000, "push");
+            assert_ne!(cnt_push, 1_000_000, "push {idx}-{num_written}");
         }
     }
 
