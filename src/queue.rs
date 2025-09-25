@@ -206,30 +206,7 @@ where
                 }
             }
 
-            // self.written
-            //     .compare_exchange(begin_idx, end_idx, Ordering::Release, Ordering::Relaxed)
-            //     .expect(&format!(
-            //         "aaa {} - {} - {}",
-            //         begin_idx,
-            //         end_idx,
-            //         self.written.load(Ordering::SeqCst),
-            //     ));
-            match self.written.compare_exchange(
-                begin_idx,
-                end_idx,
-                Ordering::Release,
-                Ordering::Relaxed,
-            ) {
-                Ok(x) => {}
-                Err(e) => {
-                    println!("\n\nbegin={begin_idx}\nend={end_idx}\ne={e}");
-                    assert_eq!(begin_idx, end_idx);
-                    while comp_exch_weak(&self.written, begin_idx, end_idx).is_err() {}
-                }
-            }
-
-            // self.written.store(end_idx, Ordering::Release);
-            // self.written.fetch_max(end_idx, Ordering::Release);
+            while comp_exch_weak(&self.written, begin_idx, end_idx).is_err() {}
         }
     }
 
