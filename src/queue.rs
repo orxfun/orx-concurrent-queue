@@ -1,124 +1,180 @@
-use orx_concurrent_iter::implementations::array_utils::ArrayIntoSeqIter;
-use std::mem::ManuallyDrop;
-use std::sync::atomic::{AtomicIsize, AtomicUsize, Ordering};
+use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
+use orx_split_vec::{Doubling, SplitVec};
+use std::{
+    marker::PhantomData,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
-pub struct Queue<T: Send> {
-    capacity: usize,
-    data: *mut T,
-    len: AtomicIsize,
-    pushed: AtomicUsize,
-    popped: AtomicUsize,
+use crate::write_permit::WritePermit;
+
+type DefaultPinnedVec<T> = SplitVec<T, Doubling>;
+pub type DefaultConVec<T> = <DefaultPinnedVec<T> as IntoConcurrentPinnedVec<T>>::ConPinnedVec;
+
+impl<T> Default for ConcurrentQueue<T, DefaultConVec<T>>
+where
+    T: Send,
+{
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
-unsafe impl<T: Send> Sync for Queue<T> {}
+impl<T> ConcurrentQueue<T, DefaultConVec<T>>
+where
+    T: Send,
+{
+    pub fn new() -> Self {
+        SplitVec::with_doubling_growth_and_max_concurrent_capacity().into()
+    }
+}
 
-impl<T: Send> Drop for Queue<T> {
+pub struct ConcurrentQueue<T, P = DefaultConVec<T>>
+where
+    T: Send,
+    P: ConcurrentPinnedVec<T>,
+{
+    vec: P,
+    phantom: PhantomData<T>,
+    written: AtomicUsize,
+    write_reserved: AtomicUsize,
+    popped: AtomicUsize,
+    pop_reserved: AtomicUsize,
+}
+
+unsafe impl<T, P> Sync for ConcurrentQueue<T, P>
+where
+    T: Send,
+    P: ConcurrentPinnedVec<T>,
+{
+}
+
+impl<T, P> Drop for ConcurrentQueue<T, P>
+where
+    T: Send,
+    P: ConcurrentPinnedVec<T>,
+{
     fn drop(&mut self) {
         if core::mem::needs_drop::<T>() {
             let popped = self.popped.load(Ordering::Relaxed);
-            let pushed = self.pushed.load(Ordering::Relaxed);
-            for i in popped..pushed {
+            let reserved = self.write_reserved.load(Ordering::Relaxed);
+            let written = self.written.load(Ordering::Relaxed);
+            assert_eq!(reserved, written);
+            for i in popped..written {
                 let ptr = unsafe { self.ptr(i) };
                 unsafe { ptr.drop_in_place() };
             }
         }
-        let _vec = unsafe { Vec::from_raw_parts(self.data, 0, self.capacity) };
+        unsafe { self.vec.set_pinned_vec_len(0) };
     }
 }
 
-impl<T: Send> Queue<T> {
-    pub fn new(capacity: usize) -> Self {
-        let mut v = Vec::with_capacity(capacity);
-        let data = v.as_mut_ptr();
-        let _ = ManuallyDrop::new(v);
+impl<T, P> From<P> for ConcurrentQueue<T, P::ConPinnedVec>
+where
+    T: Send,
+    P: IntoConcurrentPinnedVec<T>,
+{
+    fn from(vec: P) -> Self {
         Self {
-            capacity,
-            data,
-            pushed: 0.into(),
-            len: 0.into(),
+            phantom: PhantomData,
+            written: vec.len().into(),
+            write_reserved: vec.len().into(),
             popped: 0.into(),
+            pop_reserved: 0.into(),
+            vec: vec.into_concurrent(),
         }
     }
+}
 
-    pub fn as_slice(&mut self) -> &[T] {
-        let reserved = self.pushed.load(Ordering::Relaxed);
-        let pushed = self.len.load(Ordering::Relaxed);
-        debug_assert_eq!(reserved as isize, pushed);
-        let pushed = pushed as usize;
-        let popped = self.popped.load(Ordering::Relaxed);
-
-        let begin = unsafe { self.ptr(popped) };
-        let len = pushed - popped;
-        unsafe { std::slice::from_raw_parts(begin, len) }
-    }
-
-    unsafe fn ptr(&self, idx: usize) -> *mut T {
-        unsafe { self.data.add(idx) }
+impl<T, P> ConcurrentQueue<T, P>
+where
+    T: Send,
+    P: ConcurrentPinnedVec<T>,
+{
+    pub fn len(&self) -> usize {
+        self.written.load(Ordering::Relaxed) - self.popped.load(Ordering::Relaxed)
     }
 
     // shrink
 
     pub fn pop(&self) -> Option<T> {
-        let previous = self.len.fetch_sub(1, Ordering::Acquire);
-        match previous {
-            p if p <= 0 => {
-                let current = p - 1;
-                while self
-                    .len
-                    .compare_exchange_weak(current, p, Ordering::Acquire, Ordering::Relaxed)
-                    .is_err()
-                {}
-                None
-            }
-            _ => {
-                let idx = self.popped.fetch_add(1, Ordering::Acquire);
-                // while self.pushed.load(Ordering::Relaxed) <= idx {}
-                let value = unsafe { self.ptr(idx).read() };
-                Some(value)
+        let idx = self.pop_reserved.fetch_add(1, Ordering::Acquire);
+
+        loop {
+            let written = self.written.load(Ordering::Acquire);
+
+            match idx < written {
+                true => {
+                    let num_popped = idx + 1;
+                    while self
+                        .popped
+                        .compare_exchange(idx, num_popped, Ordering::Release, Ordering::Relaxed)
+                        .is_err()
+                    {}
+                    return Some(unsafe { self.ptr(idx).read() });
+                }
+                false => {
+                    let current = idx + 1;
+                    if self
+                        .pop_reserved
+                        .compare_exchange(current, idx, Ordering::Release, Ordering::Relaxed)
+                        .is_ok()
+                    {
+                        return None;
+                    }
+                }
             }
         }
     }
 
-    pub fn pull(&self, chunk_size: usize) -> Option<ArrayIntoSeqIter<T, &Self>> {
-        match chunk_size {
-            0 => None,
-            chunk_size => {
-                let chunk_size_i = chunk_size as isize;
+    pub fn pull(&self, chunk_size: usize) -> Option<impl ExactSizeIterator<Item = T>> {
+        let begin_idx = self.pop_reserved.fetch_add(chunk_size, Ordering::Acquire);
+        let end_idx = begin_idx + chunk_size;
 
-                let previous = self.len.fetch_sub(chunk_size_i, Ordering::Acquire);
-                match previous {
-                    p if p <= 0 => {
-                        // no item was available
-                        let current = p - chunk_size_i;
-                        while self
-                            .len
-                            .compare_exchange_weak(current, p, Ordering::Acquire, Ordering::Relaxed)
-                            .is_err()
-                        {}
-                        None
-                    }
-                    p if p < chunk_size_i => {
-                        // there were items, but fewer than chunk_size
-                        let current = p - chunk_size_i;
-                        while self
-                            .len
-                            .compare_exchange_weak(current, 0, Ordering::Acquire, Ordering::Relaxed)
-                            .is_err()
-                        {}
+        loop {
+            let written = self.written.load(Ordering::Acquire);
 
-                        let chunk_size = p as usize;
-                        let idx = self.popped.fetch_add(chunk_size, Ordering::Acquire);
-                        let begin = unsafe { self.ptr(idx) };
-                        let end = unsafe { begin.add(chunk_size - 1) };
-                        let iter = ArrayIntoSeqIter::new(begin, end, None, self);
-                        Some(iter)
-                    }
-                    _ => {
-                        let idx = self.popped.fetch_add(chunk_size, Ordering::Acquire);
-                        let begin = unsafe { self.ptr(idx) };
-                        let end = unsafe { begin.add(chunk_size - 1) };
-                        let iter = ArrayIntoSeqIter::new(begin, end, None, self);
-                        Some(iter)
+            match begin_idx < written {
+                true => {
+                    let range = match end_idx <= written {
+                        true => begin_idx..end_idx,
+                        false => {
+                            let diff = end_idx - written;
+                            let actual_end_idx = end_idx - diff;
+                            match self
+                                .pop_reserved
+                                .compare_exchange(
+                                    end_idx,
+                                    actual_end_idx,
+                                    Ordering::Release,
+                                    Ordering::Relaxed,
+                                )
+                                .is_ok()
+                            {
+                                true => begin_idx..actual_end_idx,
+                                false => continue,
+                            }
+                        }
+                    };
+                    while self
+                        .popped
+                        .compare_exchange(
+                            range.start,
+                            range.end,
+                            Ordering::Release,
+                            Ordering::Relaxed,
+                        )
+                        .is_err()
+                    {}
+                    let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
+                    return Some(iter.map(|ptr| unsafe { ptr.read() }));
+                }
+                false => {
+                    if self
+                        .pop_reserved
+                        .compare_exchange(end_idx, begin_idx, Ordering::Release, Ordering::Relaxed)
+                        .is_ok()
+                    {
+                        return None;
                     }
                 }
             }
@@ -128,31 +184,98 @@ impl<T: Send> Queue<T> {
     // grow
 
     pub fn push(&self, value: T) {
-        let idx = self.pushed.fetch_add(1, Ordering::Acquire);
-        unsafe { self.ptr(idx).write(value) };
-        self.len.fetch_add(1, Ordering::Release);
+        let mut cnt_push = 0;
+        let idx = self.write_reserved.fetch_add(1, Ordering::AcqRel);
+        self.assert_has_capacity_for(idx);
+
+        loop {
+            match WritePermit::for_one(self.vec.capacity(), idx) {
+                WritePermit::JustWrite => {
+                    unsafe { self.ptr(idx).write(value) };
+                    break;
+                }
+                WritePermit::GrowThenWrite => {
+                    self.grow_to(idx + 1);
+                    unsafe { self.ptr(idx).write(value) };
+                    break;
+                }
+                WritePermit::Spin => {}
+            }
+        }
+
+        let num_written = idx + 1;
+        while self
+            .written
+            .compare_exchange(idx, num_written, Ordering::Release, Ordering::Relaxed)
+            .is_err()
+        {
+            cnt_push += 1;
+            assert_ne!(cnt_push, 1_000_000, "push {idx}-{num_written}");
+        }
     }
 
     pub fn extend<I, Iter>(&self, values: I)
     where
+        I: IntoIterator<Item = T, IntoIter = Iter>,
         Iter: ExactSizeIterator<Item = T>,
-        I: IntoIterator<IntoIter = Iter, Item = T>,
     {
         let values = values.into_iter();
         let num_items = values.len();
-        unsafe { self.extend_n_items(values, num_items) };
+
+        if num_items > 0 {
+            let begin_idx = self.write_reserved.fetch_add(num_items, Ordering::AcqRel);
+            let end_idx = begin_idx + num_items;
+            let last_idx = begin_idx + num_items - 1;
+            self.assert_has_capacity_for(last_idx);
+
+            loop {
+                match WritePermit::for_many(self.vec.capacity(), begin_idx, last_idx) {
+                    WritePermit::JustWrite => {
+                        let iter = unsafe { self.vec.ptr_iter_unchecked(begin_idx..end_idx) };
+                        for (p, value) in iter.zip(values) {
+                            unsafe { p.write(value) };
+                        }
+                        break;
+                    }
+                    WritePermit::GrowThenWrite => {
+                        self.grow_to(end_idx);
+                        let iter = unsafe { self.vec.ptr_iter_unchecked(begin_idx..end_idx) };
+                        for (p, value) in iter.zip(values) {
+                            unsafe { p.write(value) };
+                        }
+                        break;
+                    }
+                    WritePermit::Spin => {}
+                }
+            }
+
+            while self
+                .written
+                .compare_exchange(begin_idx, end_idx, Ordering::Release, Ordering::Relaxed)
+                .is_err()
+            {}
+        }
     }
 
-    pub unsafe fn extend_n_items(&self, values: impl IntoIterator<Item = T>, num_items: usize) {
-        let values = values.into_iter();
-        let idx = self.pushed.fetch_add(num_items, Ordering::Acquire);
+    // helpers
 
-        let mut ptr = unsafe { self.ptr(idx) };
-        for value in values {
-            unsafe { ptr.write(value) };
-            unsafe { ptr = ptr.add(1) };
-        }
+    #[inline(always)]
+    unsafe fn ptr(&self, idx: usize) -> *mut T {
+        unsafe { self.vec.get_ptr_mut(idx) }
+    }
 
-        self.len.fetch_add(num_items as isize, Ordering::Release);
+    #[inline(always)]
+    fn assert_has_capacity_for(&self, idx: usize) {
+        assert!(
+            idx < self.vec.max_capacity(),
+            "Out of capacity. Underlying pinned vector cannot grow any further while being concurrently safe."
+        );
+    }
+
+    fn grow_to(&self, new_capacity: usize) {
+        _ = self
+            .vec
+            .grow_to(new_capacity)
+            .expect("The underlying pinned vector reached its capacity and failed to grow");
     }
 }

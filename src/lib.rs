@@ -18,5 +18,6 @@ extern crate alloc;
 mod tests;
 
 mod queue;
+mod write_permit;
 
-pub use queue::Queue;
+pub use queue::ConcurrentQueue;

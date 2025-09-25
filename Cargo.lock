@@ -5,26 +5,35 @@ version = 4
 [[package]]
 name = "cfg-if"
 version = "1.0.3"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fd1289c04a9ea8cb22300a459a72a385d7c73d3259e2ed7dcb2af674838cfa9"
+
+[[package]]
+name = "exponential-backoff"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "020662aa57307d8884be79fca464cce073745cfe6ac70805770972113ca6ee95"
+dependencies = [
+ "fastrand",
+]
+
+[[package]]
+name = "fastrand"
+version = "2.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
 
 [[package]]
 name = "orx-concurrent-bag"
 version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0a02f175ec5226c543875599ddb1c734155557cb973202643c2203c37cf762b"
 dependencies = [
  "orx-fixed-vec 3.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-pinned-concurrent-col 2.15.0",
+ "orx-pinned-concurrent-col",
  "orx-pinned-vec 3.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "orx-pseudo-default",
  "orx-split-vec 3.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "orx-concurrent-iter"
-version = "3.1.0"
-dependencies = [
- "orx-iterable 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -33,74 +42,43 @@ version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31485aa02a0ad52d390951a44f3212bfb9dbf06f6e2c8b4265dc2966d5faf85c"
 dependencies = [
- "orx-iterable 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "orx-iterable",
+ "orx-pseudo-default",
 ]
-
-[[package]]
-name = "orx-concurrent-iter"
-version = "3.1.0"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
-checksum = "31485aa02a0ad52d390951a44f3212bfb9dbf06f6e2c8b4265dc2966d5faf85c"
-dependencies = [
- "orx-iterable 1.3.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-pseudo-default 2.1.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
-]
-
-[[package]]
-name = "orx-concurrent-option"
-version = "1.5.0"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
-checksum = "842a5c05d6f02368d1cdfebec87ae6e2277ca0cf544ab3778e6f2e6c5c947da3"
 
 [[package]]
 name = "orx-concurrent-queue"
 version = "0.1.0"
 dependencies = [
+ "exponential-backoff",
  "orx-concurrent-bag",
- "orx-concurrent-iter 3.1.0",
- "orx-concurrent-vec",
- "orx-pinned-vec 3.17.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-split-vec 3.19.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
+ "orx-fixed-vec 3.19.0 (git+https://github.com/orxfun/orx-fixed-vec?branch=support-for-concurrent-queue)",
+ "orx-pinned-vec 3.17.0 (git+https://github.com/orxfun/orx-pinned-vec?branch=concurrent-queue-support)",
+ "orx-split-vec 3.19.0 (git+https://github.com/orxfun/orx-split-vec?branch=support-for-concurrent-queue)",
  "test-case",
 ]
 
 [[package]]
-name = "orx-concurrent-vec"
-version = "3.8.0"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
-checksum = "9bc932e6a214ee031f4cfa5a89b55e5c9faafe977c6180a54b5d8bc068cb599a"
-dependencies = [
- "orx-concurrent-option",
- "orx-fixed-vec 3.19.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-pinned-concurrent-col 2.15.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-pinned-vec 3.17.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-pseudo-default 2.1.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-split-vec 3.19.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
-]
-
-[[package]]
 name = "orx-fixed-vec"
 version = "3.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb81507ef485e9148e07d1f716c2d8b72fccc6a7ea93f3958ddbf1a6401786b3"
 dependencies = [
- "orx-concurrent-iter 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-iterable 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "orx-concurrent-iter",
+ "orx-iterable",
  "orx-pinned-vec 3.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "orx-pseudo-default",
 ]
 
 [[package]]
 name = "orx-fixed-vec"
 version = "3.19.0"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
-checksum = "bb81507ef485e9148e07d1f716c2d8b72fccc6a7ea93f3958ddbf1a6401786b3"
+source = "git+https://github.com/orxfun/orx-fixed-vec?branch=support-for-concurrent-queue#73d52e3dab41d8ca85195dda3ed5797a2910d072"
 dependencies = [
- "orx-concurrent-iter 3.1.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-iterable 1.3.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-pinned-vec 3.17.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-pseudo-default 2.1.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
+ "orx-concurrent-iter",
+ "orx-iterable",
+ "orx-pinned-vec 3.17.0 (git+https://github.com/orxfun/orx-pinned-vec?branch=concurrent-queue-support)",
+ "orx-pseudo-default",
 ]
 
 [[package]]
@@ -109,58 +87,38 @@ version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfa2cb3f82a187c68835faac9cf03faaee70b93f4da3b85515ac1b4c6f8a432d"
 dependencies = [
- "orx-self-or 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "orx-iterable"
-version = "1.3.0"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
-checksum = "dfa2cb3f82a187c68835faac9cf03faaee70b93f4da3b85515ac1b4c6f8a432d"
-dependencies = [
- "orx-self-or 1.2.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
+ "orx-self-or",
 ]
 
 [[package]]
 name = "orx-pinned-concurrent-col"
 version = "2.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60977176e74a36cb65bdf21b63ae8caecc04f93981021db4d472f3252cbf338c"
 dependencies = [
  "orx-fixed-vec 3.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "orx-pinned-vec 3.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "orx-pseudo-default",
  "orx-split-vec 3.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "orx-pinned-concurrent-col"
-version = "2.15.0"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
-checksum = "60977176e74a36cb65bdf21b63ae8caecc04f93981021db4d472f3252cbf338c"
-dependencies = [
- "orx-fixed-vec 3.19.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-pinned-vec 3.17.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-pseudo-default 2.1.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-split-vec 3.19.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
-]
-
-[[package]]
 name = "orx-pinned-vec"
 version = "3.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fcd865a63f5d56134bd5e5d7ffe6e2a6a8458d79f625ebf7b56c43292829e96c"
 dependencies = [
- "orx-iterable 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "orx-iterable",
+ "orx-pseudo-default",
 ]
 
 [[package]]
 name = "orx-pinned-vec"
 version = "3.17.0"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
-checksum = "fcd865a63f5d56134bd5e5d7ffe6e2a6a8458d79f625ebf7b56c43292829e96c"
+source = "git+https://github.com/orxfun/orx-pinned-vec?branch=concurrent-queue-support#379a37d3c9ea8875084257d92bb2433a25254faa"
 dependencies = [
- "orx-iterable 1.3.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-pseudo-default 2.1.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
+ "orx-iterable",
+ "orx-pseudo-default",
 ]
 
 [[package]]
@@ -170,21 +128,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34eaace9ae01f7025804fbca40ec45b87c19ba0328d97195e01c6135897762a8"
 
 [[package]]
-name = "orx-pseudo-default"
-version = "2.1.0"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
-checksum = "34eaace9ae01f7025804fbca40ec45b87c19ba0328d97195e01c6135897762a8"
-
-[[package]]
 name = "orx-self-or"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67a8e35dfe18921e475b9861266fd58a5ecfd681161f242d24a9e2d1e07fbc28"
-
-[[package]]
-name = "orx-self-or"
-version = "1.2.0"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
 checksum = "67a8e35dfe18921e475b9861266fd58a5ecfd681161f242d24a9e2d1e07fbc28"
 
 [[package]]
@@ -193,28 +139,27 @@ version = "3.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2eccac043eb507001a48c0e75c39e36650e6bbd99ece1ab8a15df43d7354c91e"
 dependencies = [
- "orx-concurrent-iter 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-iterable 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "orx-concurrent-iter",
+ "orx-iterable",
  "orx-pinned-vec 3.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "orx-pseudo-default",
 ]
 
 [[package]]
 name = "orx-split-vec"
 version = "3.19.0"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
-checksum = "2eccac043eb507001a48c0e75c39e36650e6bbd99ece1ab8a15df43d7354c91e"
+source = "git+https://github.com/orxfun/orx-split-vec?branch=support-for-concurrent-queue#4314608b3e5cf6a783e07b29f0f18d4e4ad27664"
 dependencies = [
- "orx-concurrent-iter 3.1.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-iterable 1.3.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-pinned-vec 3.17.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
- "orx-pseudo-default 2.1.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
+ "orx-concurrent-iter",
+ "orx-iterable",
+ "orx-pinned-vec 3.17.0 (git+https://github.com/orxfun/orx-pinned-vec?branch=concurrent-queue-support)",
+ "orx-pseudo-default",
 ]
 
 [[package]]
 name = "proc-macro2"
 version = "1.0.101"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89ae43fd86e4158d6db51ad8e2b80f313af9cc74f5c0e03ccb87de09998732de"
 dependencies = [
  "unicode-ident",
@@ -223,7 +168,7 @@ dependencies = [
 [[package]]
 name = "quote"
 version = "1.0.40"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
 dependencies = [
  "proc-macro2",
@@ -232,7 +177,7 @@ dependencies = [
 [[package]]
 name = "syn"
 version = "2.0.106"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ede7c438028d4436d71104916910f5bb611972c5cfd7f89b8300a8186e6fada6"
 dependencies = [
  "proc-macro2",
@@ -243,7 +188,7 @@ dependencies = [
 [[package]]
 name = "test-case"
 version = "3.3.1"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb2550dd13afcd286853192af8601920d959b14c401fcece38071d53bf0768a8"
 dependencies = [
  "test-case-macros",
@@ -252,7 +197,7 @@ dependencies = [
 [[package]]
 name = "test-case-core"
 version = "3.3.1"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adcb7fd841cd518e279be3d5a3eb0636409487998a4aff22f3de87b81e88384f"
 dependencies = [
  "cfg-if",
@@ -264,7 +209,7 @@ dependencies = [
 [[package]]
 name = "test-case-macros"
 version = "3.3.1"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c89e72a01ed4c579669add59014b9a524d609c0c88c6a585ce37485879f6ffb"
 dependencies = [
  "proc-macro2",
@@ -276,5 +221,5 @@ dependencies = [
 [[package]]
 name = "unicode-ident"
 version = "1.0.19"
-source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f63a545481291138910575129486daeaf8ac54aee4387fe7906919f7830c7d9d"
