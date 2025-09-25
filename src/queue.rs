@@ -40,7 +40,6 @@ where
     written: AtomicUsize,
     write_reserved: AtomicUsize,
     popped: AtomicUsize,
-    pop_reserved: AtomicUsize,
 }
 
 unsafe impl<T, P> Sync for ConcurrentQueue<T, P>
@@ -81,7 +80,6 @@ where
             written: vec.len().into(),
             write_reserved: vec.len().into(),
             popped: 0.into(),
-            pop_reserved: 0.into(),
             vec: vec.into_concurrent(),
         }
     }
@@ -99,17 +97,14 @@ where
     // shrink
 
     pub fn pop(&self) -> Option<T> {
-        let idx = self.pop_reserved.fetch_add(1, Ordering::Relaxed);
+        let idx = self.popped.fetch_add(1, Ordering::Relaxed);
 
         loop {
             let written = self.written.load(Ordering::Acquire);
             match idx < written {
-                true => {
-                    _ = self.popped.fetch_add(1, Ordering::Release);
-                    return Some(unsafe { self.ptr(idx).read() });
-                }
+                true => return Some(unsafe { self.ptr(idx).read() }),
                 false => {
-                    if comp_exch(&self.pop_reserved, idx + 1, idx).is_ok() {
+                    if comp_exch(&self.popped, idx + 1, idx).is_ok() {
                         return None;
                     }
                 }
@@ -118,29 +113,34 @@ where
     }
 
     pub fn pull(&self, chunk_size: usize) -> Option<impl ExactSizeIterator<Item = T>> {
-        let begin_idx = self.pop_reserved.fetch_add(chunk_size, Ordering::Relaxed);
+        let begin_idx = self.popped.fetch_add(chunk_size, Ordering::Relaxed);
         let end_idx = begin_idx + chunk_size;
 
         loop {
             let written = self.written.load(Ordering::Acquire);
 
-            match begin_idx < written {
-                true => {
-                    let range = match end_idx <= written {
-                        true => begin_idx..end_idx,
-                        false => match comp_exch(&self.pop_reserved, end_idx, written).is_ok() {
-                            true => begin_idx..written,
-                            false => continue,
-                        },
-                    };
-                    _ = self.popped.fetch_add(range.len(), Ordering::Release);
+            let has_none = begin_idx >= written;
+            let has_some = !has_none;
+            let has_all = end_idx <= written;
+
+            let range = match (has_some, has_all) {
+                (false, _) => match comp_exch(&self.popped, end_idx, begin_idx).is_ok() {
+                    true => return None,
+                    false => None,
+                },
+                (true, true) => Some(begin_idx..end_idx),
+                (true, false) => Some(begin_idx..written),
+            };
+
+            if let Some(range) = range {
+                let ok = match has_all {
+                    true => true,
+                    false => comp_exch(&self.popped, end_idx, range.end).is_ok(),
+                };
+
+                if ok {
                     let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
                     return Some(iter.map(|ptr| unsafe { ptr.read() }));
-                }
-                false => {
-                    if comp_exch(&self.pop_reserved, end_idx, begin_idx).is_ok() {
-                        return None;
-                    }
                 }
             }
         }
