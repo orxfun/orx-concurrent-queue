@@ -1,11 +1,13 @@
+use crate::{
+    atomic_utils::{comp_exch, comp_exch_weak},
+    write_permit::WritePermit,
+};
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
 use orx_split_vec::{Doubling, SplitVec};
 use std::{
     marker::PhantomData,
     sync::atomic::{AtomicUsize, Ordering},
 };
-
-use crate::write_permit::WritePermit;
 
 type DefaultPinnedVec<T> = SplitVec<T, Doubling>;
 pub type DefaultConVec<T> = <DefaultPinnedVec<T> as IntoConcurrentPinnedVec<T>>::ConPinnedVec;
@@ -101,24 +103,14 @@ where
 
         loop {
             let written = self.written.load(Ordering::Acquire);
-
             match idx < written {
                 true => {
                     let num_popped = idx + 1;
-                    while self
-                        .popped
-                        .compare_exchange(idx, num_popped, Ordering::Release, Ordering::Relaxed)
-                        .is_err()
-                    {}
+                    while comp_exch_weak(&self.popped, idx, num_popped).is_err() {}
                     return Some(unsafe { self.ptr(idx).read() });
                 }
                 false => {
-                    let current = idx + 1;
-                    if self
-                        .pop_reserved
-                        .compare_exchange(current, idx, Ordering::Release, Ordering::Relaxed)
-                        .is_ok()
-                    {
+                    if comp_exch(&self.pop_reserved, idx + 1, idx).is_ok() {
                         return None;
                     }
                 }
@@ -140,40 +132,18 @@ where
                         false => {
                             let diff = end_idx - written;
                             let actual_end_idx = end_idx - diff;
-                            match self
-                                .pop_reserved
-                                .compare_exchange(
-                                    end_idx,
-                                    actual_end_idx,
-                                    Ordering::Release,
-                                    Ordering::Relaxed,
-                                )
-                                .is_ok()
-                            {
+                            match comp_exch(&self.pop_reserved, end_idx, actual_end_idx).is_ok() {
                                 true => begin_idx..actual_end_idx,
                                 false => continue,
                             }
                         }
                     };
-                    while self
-                        .popped
-                        .compare_exchange(
-                            range.start,
-                            range.end,
-                            Ordering::Release,
-                            Ordering::Relaxed,
-                        )
-                        .is_err()
-                    {}
+                    while comp_exch_weak(&self.popped, range.start, range.end).is_err() {}
                     let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
                     return Some(iter.map(|ptr| unsafe { ptr.read() }));
                 }
                 false => {
-                    if self
-                        .pop_reserved
-                        .compare_exchange(end_idx, begin_idx, Ordering::Release, Ordering::Relaxed)
-                        .is_ok()
-                    {
+                    if comp_exch(&self.pop_reserved, end_idx, begin_idx).is_ok() {
                         return None;
                     }
                 }
@@ -184,7 +154,6 @@ where
     // grow
 
     pub fn push(&self, value: T) {
-        let mut cnt_push = 0;
         let idx = self.write_reserved.fetch_add(1, Ordering::Relaxed);
         self.assert_has_capacity_for(idx);
 
@@ -204,14 +173,7 @@ where
         }
 
         let num_written = idx + 1;
-        while self
-            .written
-            .compare_exchange(idx, num_written, Ordering::Release, Ordering::Relaxed)
-            .is_err()
-        {
-            cnt_push += 1;
-            assert_ne!(cnt_push, 1_000_000, "push {idx}-{num_written}");
-        }
+        while comp_exch_weak(&self.written, idx, num_written).is_err() {}
     }
 
     pub fn extend<I, Iter>(&self, values: I)
@@ -249,11 +211,7 @@ where
                 }
             }
 
-            while self
-                .written
-                .compare_exchange(begin_idx, end_idx, Ordering::Release, Ordering::Relaxed)
-                .is_err()
-            {}
+            while comp_exch_weak(&self.written, begin_idx, end_idx).is_err() {}
         }
     }
 

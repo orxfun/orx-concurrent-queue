@@ -17,6 +17,7 @@ extern crate alloc;
 #[cfg(test)]
 mod tests;
 
+mod atomic_utils;
 mod queue;
 mod write_permit;
 
