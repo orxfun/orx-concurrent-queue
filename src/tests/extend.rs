@@ -13,11 +13,11 @@ const N: usize = 4735;
 const NUM_EXTENDERS: usize = 4;
 
 #[test_matrix(
-    [FixedVec::new(17 * N * NUM_EXTENDERS)],
-    [|x| x],
-    [ 17])
+    [FixedVec::new(17 * N * NUM_EXTENDERS), SplitVec::with_doubling_growth_and_max_concurrent_capacity(), SplitVec::with_linear_growth_and_fragments_capacity(10, 1024)],
+    [|x| x, |x| x.to_string()],
+    [0, 1, 17])
 ]
-fn xyz<P, T>(vec: P, f: impl Fn(usize) -> T + Sync, chunk_size: usize)
+fn extend<P, T>(vec: P, f: impl Fn(usize) -> T + Sync, chunk_size: usize)
 where
     P: IntoConcurrentPinnedVec<T>,
     T: Send + Clone + Ord + Debug,
