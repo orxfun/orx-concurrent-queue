@@ -1,4 +1,7 @@
-use crate::{atomic_utils::comp_exch, write_permit::WritePermit};
+use crate::{
+    atomic_utils::{comp_exch, comp_exch_weak},
+    write_permit::WritePermit,
+};
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
 use orx_split_vec::{Doubling, SplitVec};
 use std::{
@@ -103,7 +106,7 @@ where
             match idx < written {
                 true => {
                     let num_popped = idx + 1;
-                    while comp_exch(&self.popped, idx, num_popped).is_err() {}
+                    while comp_exch_weak(&self.popped, idx, num_popped).is_err() {}
                     return Some(unsafe { self.ptr(idx).read() });
                 }
                 false => {
@@ -131,7 +134,7 @@ where
                             false => continue,
                         },
                     };
-                    while comp_exch(&self.popped, range.start, range.end).is_err() {}
+                    while comp_exch_weak(&self.popped, range.start, range.end).is_err() {}
                     let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
                     return Some(iter.map(|ptr| unsafe { ptr.read() }));
                 }
@@ -166,7 +169,7 @@ where
         }
 
         let num_written = idx + 1;
-        while comp_exch(&self.written, idx, num_written).is_err() {}
+        while comp_exch_weak(&self.written, idx, num_written).is_err() {}
     }
 
     pub fn extend<I, Iter>(&self, values: I)
@@ -204,7 +207,7 @@ where
                 }
             }
 
-            while comp_exch(&self.written, begin_idx, end_idx).is_err() {}
+            while comp_exch_weak(&self.written, begin_idx, end_idx).is_err() {}
         }
     }
 
