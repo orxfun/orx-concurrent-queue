@@ -10,5 +10,6 @@ orx-fixed-vec = { git = "https://github.com/orxfun/orx-fixed-vec", branch = "sup
 exponential-backoff = { version = "2.1.0" }
 
 [dev-dependencies]
+criterion = { version = "0.7.0", default-features = false }
 orx-concurrent-bag = { version = "3.1.0" }
 test-case = { version = "3.3.1" }
