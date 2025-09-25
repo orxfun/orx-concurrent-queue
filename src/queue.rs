@@ -1,11 +1,13 @@
+use crate::{
+    atomic_utils::{comp_exch, comp_exch_weak},
+    write_permit::WritePermit,
+};
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
 use orx_split_vec::{Doubling, SplitVec};
 use std::{
     marker::PhantomData,
     sync::atomic::{AtomicUsize, Ordering},
 };
-
-use crate::write_permit::WritePermit;
 
 type DefaultPinnedVec<T> = SplitVec<T, Doubling>;
 pub type DefaultConVec<T> = <DefaultPinnedVec<T> as IntoConcurrentPinnedVec<T>>::ConPinnedVec;
@@ -38,7 +40,6 @@ where
     written: AtomicUsize,
     write_reserved: AtomicUsize,
     popped: AtomicUsize,
-    pop_reserved: AtomicUsize,
 }
 
 unsafe impl<T, P> Sync for ConcurrentQueue<T, P>
@@ -79,7 +80,6 @@ where
             written: vec.len().into(),
             write_reserved: vec.len().into(),
             popped: 0.into(),
-            pop_reserved: 0.into(),
             vec: vec.into_concurrent(),
         }
     }
@@ -97,28 +97,14 @@ where
     // shrink
 
     pub fn pop(&self) -> Option<T> {
-        let idx = self.pop_reserved.fetch_add(1, Ordering::Acquire);
+        let idx = self.popped.fetch_add(1, Ordering::Relaxed);
 
         loop {
             let written = self.written.load(Ordering::Acquire);
-
             match idx < written {
-                true => {
-                    let num_popped = idx + 1;
-                    while self
-                        .popped
-                        .compare_exchange(idx, num_popped, Ordering::Release, Ordering::Relaxed)
-                        .is_err()
-                    {}
-                    return Some(unsafe { self.ptr(idx).read() });
-                }
+                true => return Some(unsafe { self.ptr(idx).read() }),
                 false => {
-                    let current = idx + 1;
-                    if self
-                        .pop_reserved
-                        .compare_exchange(current, idx, Ordering::Release, Ordering::Relaxed)
-                        .is_ok()
-                    {
+                    if comp_exch(&self.popped, idx + 1, idx).is_ok() {
                         return None;
                     }
                 }
@@ -127,55 +113,34 @@ where
     }
 
     pub fn pull(&self, chunk_size: usize) -> Option<impl ExactSizeIterator<Item = T>> {
-        let begin_idx = self.pop_reserved.fetch_add(chunk_size, Ordering::Acquire);
+        let begin_idx = self.popped.fetch_add(chunk_size, Ordering::Relaxed);
         let end_idx = begin_idx + chunk_size;
 
         loop {
             let written = self.written.load(Ordering::Acquire);
 
-            match begin_idx < written {
-                true => {
-                    let range = match end_idx <= written {
-                        true => begin_idx..end_idx,
-                        false => {
-                            let diff = end_idx - written;
-                            let actual_end_idx = end_idx - diff;
-                            match self
-                                .pop_reserved
-                                .compare_exchange(
-                                    end_idx,
-                                    actual_end_idx,
-                                    Ordering::Release,
-                                    Ordering::Relaxed,
-                                )
-                                .is_ok()
-                            {
-                                true => begin_idx..actual_end_idx,
-                                false => continue,
-                            }
-                        }
-                    };
-                    while self
-                        .popped
-                        .compare_exchange(
-                            range.start,
-                            range.end,
-                            Ordering::Release,
-                            Ordering::Relaxed,
-                        )
-                        .is_err()
-                    {}
+            let has_none = begin_idx >= written;
+            let has_some = !has_none;
+            let has_all = end_idx <= written;
+
+            let range = match (has_some, has_all) {
+                (false, _) => match comp_exch(&self.popped, end_idx, begin_idx).is_ok() {
+                    true => return None,
+                    false => None,
+                },
+                (true, true) => Some(begin_idx..end_idx),
+                (true, false) => Some(begin_idx..written),
+            };
+
+            if let Some(range) = range {
+                let ok = match has_all {
+                    true => true,
+                    false => comp_exch(&self.popped, end_idx, range.end).is_ok(),
+                };
+
+                if ok {
                     let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
                     return Some(iter.map(|ptr| unsafe { ptr.read() }));
-                }
-                false => {
-                    if self
-                        .pop_reserved
-                        .compare_exchange(end_idx, begin_idx, Ordering::Release, Ordering::Relaxed)
-                        .is_ok()
-                    {
-                        return None;
-                    }
                 }
             }
         }
@@ -184,8 +149,7 @@ where
     // grow
 
     pub fn push(&self, value: T) {
-        let mut cnt_push = 0;
-        let idx = self.write_reserved.fetch_add(1, Ordering::AcqRel);
+        let idx = self.write_reserved.fetch_add(1, Ordering::Relaxed);
         self.assert_has_capacity_for(idx);
 
         loop {
@@ -204,14 +168,7 @@ where
         }
 
         let num_written = idx + 1;
-        while self
-            .written
-            .compare_exchange(idx, num_written, Ordering::Release, Ordering::Relaxed)
-            .is_err()
-        {
-            cnt_push += 1;
-            assert_ne!(cnt_push, 1_000_000, "push {idx}-{num_written}");
-        }
+        while comp_exch_weak(&self.written, idx, num_written).is_err() {}
     }
 
     pub fn extend<I, Iter>(&self, values: I)
@@ -223,7 +180,7 @@ where
         let num_items = values.len();
 
         if num_items > 0 {
-            let begin_idx = self.write_reserved.fetch_add(num_items, Ordering::AcqRel);
+            let begin_idx = self.write_reserved.fetch_add(num_items, Ordering::Relaxed);
             let end_idx = begin_idx + num_items;
             let last_idx = begin_idx + num_items - 1;
             self.assert_has_capacity_for(last_idx);
@@ -249,11 +206,7 @@ where
                 }
             }
 
-            while self
-                .written
-                .compare_exchange(begin_idx, end_idx, Ordering::Release, Ordering::Relaxed)
-                .is_err()
-            {}
+            while comp_exch_weak(&self.written, begin_idx, end_idx).is_err() {}
         }
     }
 
