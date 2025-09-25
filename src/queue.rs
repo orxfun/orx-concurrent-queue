@@ -105,8 +105,7 @@ where
             let written = self.written.load(Ordering::Acquire);
             match idx < written {
                 true => {
-                    let num_popped = idx + 1;
-                    while comp_exch_weak(&self.popped, idx, num_popped).is_err() {}
+                    _ = self.popped.fetch_add(1, Ordering::Release);
                     return Some(unsafe { self.ptr(idx).read() });
                 }
                 false => {
@@ -134,7 +133,7 @@ where
                             false => continue,
                         },
                     };
-                    while comp_exch_weak(&self.popped, range.start, range.end).is_err() {}
+                    _ = self.popped.fetch_add(range.len(), Ordering::Release);
                     let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
                     return Some(iter.map(|ptr| unsafe { ptr.read() }));
                 }
