@@ -97,7 +97,7 @@ where
     // shrink
 
     pub fn pop(&self) -> Option<T> {
-        let idx = self.pop_reserved.fetch_add(1, Ordering::Acquire);
+        let idx = self.pop_reserved.fetch_add(1, Ordering::Relaxed);
 
         loop {
             let written = self.written.load(Ordering::Acquire);
@@ -127,7 +127,7 @@ where
     }
 
     pub fn pull(&self, chunk_size: usize) -> Option<impl ExactSizeIterator<Item = T>> {
-        let begin_idx = self.pop_reserved.fetch_add(chunk_size, Ordering::Acquire);
+        let begin_idx = self.pop_reserved.fetch_add(chunk_size, Ordering::Relaxed);
         let end_idx = begin_idx + chunk_size;
 
         loop {
@@ -185,7 +185,7 @@ where
 
     pub fn push(&self, value: T) {
         let mut cnt_push = 0;
-        let idx = self.write_reserved.fetch_add(1, Ordering::AcqRel);
+        let idx = self.write_reserved.fetch_add(1, Ordering::Relaxed);
         self.assert_has_capacity_for(idx);
 
         loop {
@@ -223,7 +223,7 @@ where
         let num_items = values.len();
 
         if num_items > 0 {
-            let begin_idx = self.write_reserved.fetch_add(num_items, Ordering::AcqRel);
+            let begin_idx = self.write_reserved.fetch_add(num_items, Ordering::Relaxed);
             let end_idx = begin_idx + num_items;
             let last_idx = begin_idx + num_items - 1;
             self.assert_has_capacity_for(last_idx);
