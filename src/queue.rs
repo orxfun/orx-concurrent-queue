@@ -1,7 +1,4 @@
-use crate::{
-    atomic_utils::{comp_exch, comp_exch_weak},
-    write_permit::WritePermit,
-};
+use crate::{atomic_utils::comp_exch, write_permit::WritePermit};
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
 use orx_split_vec::{Doubling, SplitVec};
 use std::{
@@ -106,7 +103,7 @@ where
             match idx < written {
                 true => {
                     let num_popped = idx + 1;
-                    while comp_exch_weak(&self.popped, idx, num_popped).is_err() {}
+                    while comp_exch(&self.popped, idx, num_popped).is_err() {}
                     return Some(unsafe { self.ptr(idx).read() });
                 }
                 false => {
@@ -129,16 +126,12 @@ where
                 true => {
                     let range = match end_idx <= written {
                         true => begin_idx..end_idx,
-                        false => {
-                            let diff = end_idx - written;
-                            let actual_end_idx = end_idx - diff;
-                            match comp_exch(&self.pop_reserved, end_idx, actual_end_idx).is_ok() {
-                                true => begin_idx..actual_end_idx,
-                                false => continue,
-                            }
-                        }
+                        false => match comp_exch(&self.pop_reserved, end_idx, written).is_ok() {
+                            true => begin_idx..written,
+                            false => continue,
+                        },
                     };
-                    while comp_exch_weak(&self.popped, range.start, range.end).is_err() {}
+                    while comp_exch(&self.popped, range.start, range.end).is_err() {}
                     let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
                     return Some(iter.map(|ptr| unsafe { ptr.read() }));
                 }
@@ -173,7 +166,7 @@ where
         }
 
         let num_written = idx + 1;
-        while comp_exch_weak(&self.written, idx, num_written).is_err() {}
+        while comp_exch(&self.written, idx, num_written).is_err() {}
     }
 
     pub fn extend<I, Iter>(&self, values: I)
@@ -211,7 +204,7 @@ where
                 }
             }
 
-            while comp_exch_weak(&self.written, begin_idx, end_idx).is_err() {}
+            while comp_exch(&self.written, begin_idx, end_idx).is_err() {}
         }
     }
 
