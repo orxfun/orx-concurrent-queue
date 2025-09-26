@@ -2,12 +2,12 @@ use crate::{
     atomic_utils::{comp_exch, comp_exch_weak},
     write_permit::WritePermit,
 };
-use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
-use orx_split_vec::{Doubling, SplitVec};
-use std::{
+use core::{
     marker::PhantomData,
     sync::atomic::{AtomicUsize, Ordering},
 };
+use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
+use orx_split_vec::{Doubling, SplitVec};
 
 type DefaultPinnedVec<T> = SplitVec<T, Doubling>;
 pub type DefaultConVec<T> = <DefaultPinnedVec<T> as IntoConcurrentPinnedVec<T>>::ConPinnedVec;
