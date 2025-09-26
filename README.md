@@ -6,7 +6,7 @@
 
 A high performance and convenient thread safe queue that can concurrently grow and shrink with push, extend, pop and pull capabilities.
 
-## ConcurrentQueue Examples
+## Examples
 
 The following example demonstrates a basic usage of [`ConcurrentQueue`](https://docs.rs/orx-concurrent-queue/latest/orx_concurrent_queue/struct.ConcurrentQueue.html) within a synchronous program. Note that `push`, `extend`, `pop` and `pull` methods can be called with a shared reference `&self`. This allows to use the queue conveniently in a concurrent program.
 
