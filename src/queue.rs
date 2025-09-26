@@ -368,6 +368,20 @@ where
 
     // grow
 
+    /// Pushes the `value` to the back of the queue.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::*;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// queue.push(1);
+    /// queue.push(2);
+    /// queue.push(3);
+    /// assert_eq!(queue.into_inner(), vec![1, 2, 3]);
+    /// ```
     pub fn push(&self, value: T) {
         let idx = self.write_reserved.fetch_add(1, Ordering::Relaxed);
         self.assert_has_capacity_for(idx);
@@ -539,7 +553,11 @@ mod tsts {
     fn abc() {
         let queue = ConcurrentQueue::new();
 
-        queue.extend(1..5);
+        queue.push(1);
+        queue.push(2);
+        queue.push(3);
+        assert_eq!(queue.into_inner(), vec![1, 2, 3]);
+
         assert_eq!(
             queue.pull(2).map(|x| x.collect::<Vec<_>>()),
             Some(vec![1, 2])
