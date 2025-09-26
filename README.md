@@ -46,7 +46,8 @@ struct Task {
 
 impl Task {
     fn perform(&self) {
-        std::thread::sleep(std::time::Duration::from_micros(self.micros as u64));
+        use std::{thread::sleep, time::Duration};
+        sleep(Duration::from_micros(self.micros as u64));
     }
     fn child_tasks(&self) -> impl ExactSizeIterator<Item = Task> {
         let range = match self.micros < 5 {

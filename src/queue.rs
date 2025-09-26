@@ -118,7 +118,8 @@ where
 ///
 /// impl Task {
 ///     fn perform(&self) {
-///         std::thread::sleep(std::time::Duration::from_micros(self.micros as u64));
+///         use std::{thread::sleep, time::Duration};
+///         sleep(Duration::from_micros(self.micros as u64));
 ///     }
 ///
 ///     fn child_tasks(&self) -> impl ExactSizeIterator<Item = Task> {
@@ -142,9 +143,10 @@ where
 /// std::thread::scope(|s| {
 ///     for _ in 0..num_threads {
 ///         s.spawn(|| {
-///             // pop a task from front of the queue, as long as there are more tasks
+///             // keep popping a task from front of the queue
+///             // as long as the queue is not empty
 ///             while let Some(task) = queue.pop() {
-///                 // create children tasks, add to back of the same queue
+///                 // create children tasks, add to back
 ///                 queue.extend(task.child_tasks());
 ///
 ///                 // perform the popped task
