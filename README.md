@@ -89,3 +89,11 @@ std::thread::scope(|s| {
 
 assert_eq!(num_performed_tasks.load(Ordering::Relaxed), 5046);
 ```
+
+## Contributing
+
+Contributions are welcome! If you notice an error, have a question or think something could be improved, please open an [issue](https://github.com/orxfun/orx-concurrent-queue/issues/new) or create a PR.
+
+## License
+
+Dual-licensed under [Apache 2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT).
