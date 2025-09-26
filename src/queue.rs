@@ -268,6 +268,21 @@ where
 
     // shrink
 
+    /// Pops and returns the element in the front of the queue; returns None if the queue is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::*;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// queue.extend(1..4);
+    /// assert_eq!(queue.pop(), Some(1));
+    /// assert_eq!(queue.pop(), Some(2));
+    /// assert_eq!(queue.pop(), Some(3));
+    /// assert_eq!(queue.pop(), None);
+    /// ```
     pub fn pop(&self) -> Option<T> {
         let idx = self.popped.fetch_add(1, Ordering::Relaxed);
 
@@ -284,37 +299,70 @@ where
         }
     }
 
+    /// Pulls `chunk_size` elements from the front of the queue:
+    ///
+    /// * returns None if `chunk_size` is zero,
+    /// * returns Some of an ExactSizeIterator with `len = chunk_size` if the queue has at least `chunk_size` items,
+    /// * returns Some of a non-empty ExactSizeIterator with `len` such that `0 < len < chunk_size` if the queue
+    ///   has `len` elements,
+    /// * returns None if the queue is empty.
+    ///
+    /// Therefore, if the method returns a Some variant, the exact size iterator is not empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::*;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// queue.extend(1..6);
+    /// assert_eq!(
+    ///     queue.pull(2).map(|x| x.collect::<Vec<_>>()),
+    ///     Some(vec![1, 2])
+    /// );
+    /// assert_eq!(
+    ///     queue.pull(7).map(|x| x.collect::<Vec<_>>()),
+    ///     Some(vec![3, 4, 5])
+    /// );
+    /// assert_eq!(queue.pull(1).map(|x| x.collect::<Vec<_>>()), None);
+    /// ```
     pub fn pull(&self, chunk_size: usize) -> Option<QueueIterOwned<'_, T, P>> {
-        let begin_idx = self.popped.fetch_add(chunk_size, Ordering::Relaxed);
-        let end_idx = begin_idx + chunk_size;
+        match chunk_size > 0 {
+            true => {
+                let begin_idx = self.popped.fetch_add(chunk_size, Ordering::Relaxed);
+                let end_idx = begin_idx + chunk_size;
 
-        loop {
-            let written = self.written.load(Ordering::Acquire);
+                loop {
+                    let written = self.written.load(Ordering::Acquire);
 
-            let has_none = begin_idx >= written;
-            let has_some = !has_none;
-            let has_all = end_idx <= written;
+                    let has_none = begin_idx >= written;
+                    let has_some = !has_none;
+                    let has_all = end_idx <= written;
 
-            let range = match (has_some, has_all) {
-                (false, _) => match comp_exch(&self.popped, end_idx, begin_idx).is_ok() {
-                    true => return None,
-                    false => None,
-                },
-                (true, true) => Some(begin_idx..end_idx),
-                (true, false) => Some(begin_idx..written),
-            };
+                    let range = match (has_some, has_all) {
+                        (false, _) => match comp_exch(&self.popped, end_idx, begin_idx).is_ok() {
+                            true => return None,
+                            false => None,
+                        },
+                        (true, true) => Some(begin_idx..end_idx),
+                        (true, false) => Some(begin_idx..written),
+                    };
 
-            if let Some(range) = range {
-                let ok = match has_all {
-                    true => true,
-                    false => comp_exch(&self.popped, end_idx, range.end).is_ok(),
-                };
+                    if let Some(range) = range {
+                        let ok = match has_all {
+                            true => true,
+                            false => comp_exch(&self.popped, end_idx, range.end).is_ok(),
+                        };
 
-                if ok {
-                    let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
-                    return Some(QueueIterOwned::new(iter));
+                        if ok {
+                            let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
+                            return Some(QueueIterOwned::new(iter));
+                        }
+                    }
                 }
             }
+            false => None,
         }
     }
 
@@ -490,6 +538,17 @@ mod tsts {
     #[test]
     fn abc() {
         let queue = ConcurrentQueue::new();
+
+        queue.extend(1..5);
+        assert_eq!(
+            queue.pull(2).map(|x| x.collect::<Vec<_>>()),
+            Some(vec![1, 2])
+        );
+        assert_eq!(
+            queue.pull(7).map(|x| x.collect::<Vec<_>>()),
+            Some(vec![3, 4, 5])
+        );
+        assert_eq!(queue.pull(1).map(|x| x.collect::<Vec<_>>()), None);
 
         queue.push(0); // [0]
         queue.push(1); // [0, 1]
