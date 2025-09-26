@@ -30,6 +30,13 @@ where
     }
 }
 
+/// A thread safe queue that allows [`push`] and [`extend`] to concurrently add items to the back of the queue
+/// while at the same time allowing [`pop`] and [`pull`] to remove items from the front.
+///
+/// [`push`]: crate::ConcurrentQueue::push
+/// [`extend`]: crate::ConcurrentQueue::extend
+/// [`pop`]: crate::ConcurrentQueue::pop
+/// [`pull`]: crate::ConcurrentQueue::pull
 pub struct ConcurrentQueue<T, P = DefaultConVec<T>>
 where
     T: Send,
