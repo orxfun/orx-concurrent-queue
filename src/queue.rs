@@ -74,7 +74,7 @@ where
 ///
 /// The following example demonstrates a basic usage of the queue within a synchronous program.
 /// Note that push, extend, pop and pull methods can be called with a shared reference `&self`.
-/// This will provide the convenience to use the queue in concurrent program as will be demonstrated in the second example.
+/// This allows to use the queue conveniently in a concurrent program.
 ///
 /// ```
 /// use orx_concurrent_queue::ConcurrentQueue;
@@ -98,9 +98,15 @@ where
 /// assert_eq!(vec, vec![5, 6]);
 /// ```
 ///
+/// The following example demonstrates the main purpose of the concurrent queue,
+/// which is to simultaneously push to and pop from the queue.
+/// This enables a dynamic iterator that can be traversed by multiple threads,
+/// which can also dynamically grow during the iteration.
+///
 /// In the following example, the queue is created with three pre-populated tasks.
-/// Every task might potentially lead to new task or tasks.
-/// New tasks are added to the back of the queue, to be popped later and potentially add new tasks to the queue.
+/// Every task might potentially lead to new tasks.
+/// These new tasks are also added to the back of the queue,
+/// to be popped later and potentially add new tasks to the queue.
 ///
 /// ```
 /// use orx_concurrent_queue::ConcurrentQueue;
