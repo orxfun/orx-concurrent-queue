@@ -309,6 +309,10 @@ where
     ///
     /// Therefore, if the method returns a Some variant, the exact size iterator is not empty.
     ///
+    /// Pulled elements are guaranteed to be consecutive elements in the queue.
+    ///
+    /// In order to reduce the number of concurrent state updates, `pull` with a large enough chunk size might be preferred over `pop` whenever possible.
+    ///
     /// # Examples
     ///
     /// ```
@@ -405,6 +409,22 @@ where
         while comp_exch_weak(&self.written, idx, num_written).is_err() {}
     }
 
+    /// Extends the queue by pushing `values` elements to the back of the queue.
+    ///
+    /// In order to reduce the number of concurrent state updates, `extend` might be preferred over `push` whenever possible.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::ConcurrentQueue;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// queue.extend(1..3);
+    /// queue.extend(vec![3, 4, 5, 6]);
+    ///
+    /// assert_eq!(queue.into_inner(), vec![1, 2, 3, 4, 5, 6]);
+    /// ```
     pub fn extend<I, Iter>(&self, values: I)
     where
         I: IntoIterator<Item = T, IntoIter = Iter>,
@@ -446,6 +466,28 @@ where
 
     // get
 
+    /// Returns the number of elements in the queue.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::ConcurrentQueue;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// queue.push(1);
+    /// queue.push(2);
+    /// assert_eq!(queue.len(), 2);
+    ///
+    /// queue.extend(vec![3, 4, 5, 6]);
+    /// assert_eq!(queue.len(), 6);
+    ///
+    /// _ = queue.pop();
+    /// assert_eq!(queue.len(), 5);
+    ///
+    /// _ = queue.pull(4);
+    /// assert_eq!(queue.len(), 1);
+    /// ```
     pub fn len(&self) -> usize {
         self.written.load(Ordering::Relaxed) - self.popped.load(Ordering::Relaxed)
     }
@@ -555,8 +597,18 @@ mod tsts {
 
         queue.push(1);
         queue.push(2);
-        queue.push(3);
-        assert_eq!(queue.into_inner(), vec![1, 2, 3]);
+        assert_eq!(queue.len(), 2);
+
+        queue.extend(vec![3, 4, 5, 6]);
+        assert_eq!(queue.len(), 6);
+
+        _ = queue.pop();
+        assert_eq!(queue.len(), 5);
+
+        _ = queue.pull(4);
+        assert_eq!(queue.len(), 1);
+
+        assert_eq!(queue.into_inner(), vec![1, 2, 3, 4, 5, 6]);
 
         assert_eq!(
             queue.pull(2).map(|x| x.collect::<Vec<_>>()),
