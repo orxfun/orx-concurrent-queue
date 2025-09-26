@@ -492,6 +492,28 @@ where
         self.written.load(Ordering::Relaxed) - self.popped.load(Ordering::Relaxed)
     }
 
+    /// Returns true if the queue is empty, false otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::ConcurrentQueue;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// assert!(queue.is_empty());
+    ///
+    /// queue.push(1);
+    /// queue.push(2);
+    /// assert!(!queue.is_empty());
+    ///
+    /// _ = queue.pull(4);
+    /// assert!(queue.is_empty());
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        self.written.load(Ordering::Relaxed) == self.popped.load(Ordering::Relaxed)
+    }
+
     pub fn iter(&mut self) -> impl ExactSizeIterator<Item = &T> {
         QueueIterOfRef::<T, P>::new(self.ptr_iter())
     }
