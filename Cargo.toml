@@ -1,13 +1,18 @@
 [package]
 name = "orx-concurrent-queue"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
+authors = ["orxfun <orx.ugur.arikan@gmail.com>"]
+description = "A high performance and convenient thread safe queue with push, extend, pop and pull capabilities."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/orxfun/orx-concurrent-queue/"
+keywords = ["concurrency", "queue", "data-structures", "atomic", "lock-free"]
+categories = ["data-structures", "concurrency", "rust-patterns", "no-std"]
 
 [dependencies]
 orx-pinned-vec = { git = "https://github.com/orxfun/orx-pinned-vec", branch = "concurrent-queue-support" }
 orx-split-vec = { git = "https://github.com/orxfun/orx-split-vec", branch = "support-for-concurrent-queue" }
 orx-fixed-vec = { git = "https://github.com/orxfun/orx-fixed-vec", branch = "support-for-concurrent-queue" }
-exponential-backoff = { version = "2.1.0" }
 
 [dev-dependencies]
 criterion = { version = "0.7.0", default-features = false }

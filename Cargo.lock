@@ -137,21 +137,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
-name = "exponential-backoff"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "020662aa57307d8884be79fca464cce073745cfe6ac70805770972113ca6ee95"
-dependencies = [
- "fastrand",
-]
-
-[[package]]
-name = "fastrand"
-version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
-
-[[package]]
 name = "half"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -222,10 +207,9 @@ dependencies = [
 
 [[package]]
 name = "orx-concurrent-queue"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "criterion",
- "exponential-backoff",
  "orx-concurrent-bag",
  "orx-fixed-vec 3.19.0 (git+https://github.com/orxfun/orx-fixed-vec?branch=support-for-concurrent-queue)",
  "orx-pinned-vec 3.17.0 (git+https://github.com/orxfun/orx-pinned-vec?branch=concurrent-queue-support)",
