@@ -559,6 +559,25 @@ where
         QueueIterOfRef::<T, P>::new(self.ptr_iter())
     }
 
+    /// Returns an iterator of mutable references to items in the queue.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::ConcurrentQueue;
+    ///
+    /// let mut queue = ConcurrentQueue::new();
+    ///
+    /// queue.push(1);
+    /// queue.push(2);
+    /// queue.push(3);
+    ///
+    /// for x in queue.iter_mut() {
+    ///     *x += 10;
+    /// }
+    ///
+    /// assert_eq!(queue.into_inner(), vec![11, 12, 13]);
+    /// ```
     pub fn iter_mut(&mut self) -> impl ExactSizeIterator<Item = &mut T> {
         QueueIterOfMut::<T, P>::new(self.ptr_iter())
     }
@@ -662,8 +681,12 @@ mod tsts {
         queue.push(2);
         queue.push(3);
 
+        for x in queue.iter_mut() {
+            *x += 10;
+        }
+
         let sum: i32 = queue.iter().sum();
-        assert_eq!(sum, 6);
+        assert_eq!(sum, 36);
 
         assert_eq!(queue.len(), 2);
 
