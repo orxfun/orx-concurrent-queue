@@ -514,6 +514,47 @@ where
         self.written.load(Ordering::Relaxed) == self.popped.load(Ordering::Relaxed)
     }
 
+    /// Returns an iterator of references to items in the queue.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::ConcurrentQueue;
+    ///
+    /// let mut queue = ConcurrentQueue::new();
+    ///
+    /// queue.push(1);
+    /// queue.push(2);
+    /// queue.push(3);
+    ///
+    /// let sum: i32 = queue.iter().sum();
+    /// assert_eq!(sum, 6);
+    /// ```
+    ///
+    /// # Safety
+    ///
+    /// Notice that this call requires a mutually exclusive `&mut self` reference.
+    /// This is due to the fact that iterators are lazy and they are not necessarily consumed immediately.
+    /// On the other hand, concurrent queue allows for popping elements from the queue with a shared reference.
+    /// This could've led to the following undefined behavior.
+    ///
+    /// To prevent this, `iter` requires a mutually exclusive reference, and hence, the following code does not compile.
+    ///
+    /// ```compile_fail
+    /// use orx_concurrent_queue::ConcurrentQueue;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// queue.push(1);
+    /// queue.push(2);
+    /// queue.push(3);
+    ///
+    /// let iter = queue.iter(); // iterator over elements 1, 2 and 3
+    ///
+    /// _ = queue.pop(); // 1 is removed
+    ///
+    /// let sum = iter.sum(); // UB
+    /// ```
     pub fn iter(&mut self) -> impl ExactSizeIterator<Item = &T> {
         QueueIterOfRef::<T, P>::new(self.ptr_iter())
     }
@@ -615,10 +656,15 @@ mod tsts {
 
     #[test]
     fn abc() {
-        let queue = ConcurrentQueue::new();
+        let mut queue = ConcurrentQueue::new();
 
         queue.push(1);
         queue.push(2);
+        queue.push(3);
+
+        let sum: i32 = queue.iter().sum();
+        assert_eq!(sum, 6);
+
         assert_eq!(queue.len(), 2);
 
         queue.extend(vec![3, 4, 5, 6]);
