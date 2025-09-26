@@ -25,6 +25,7 @@ where
 {
     type Item = T;
 
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|ptr| unsafe { ptr.read() })
     }

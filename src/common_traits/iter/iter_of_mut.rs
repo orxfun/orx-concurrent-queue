@@ -25,6 +25,7 @@ where
 {
     type Item = &'a mut T;
 
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         #[allow(unused_mut)]
         self.iter.next().map(|mut ptr| unsafe { &mut *ptr })

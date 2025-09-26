@@ -1,6 +1,6 @@
 use crate::{
     atomic_utils::{comp_exch, comp_exch_weak},
-    common_traits::iter::{QueueIterOfMut, QueueIterOfRef},
+    common_traits::iter::{QueueIterOfMut, QueueIterOfRef, QueueIterOwned},
     write_permit::WritePermit,
 };
 use core::{
@@ -146,7 +146,7 @@ where
         }
     }
 
-    pub fn pull(&self, chunk_size: usize) -> Option<impl ExactSizeIterator<Item = T>> {
+    pub fn pull(&self, chunk_size: usize) -> Option<QueueIterOwned<'_, T, P>> {
         let begin_idx = self.popped.fetch_add(chunk_size, Ordering::Relaxed);
         let end_idx = begin_idx + chunk_size;
 
@@ -174,7 +174,7 @@ where
 
                 if ok {
                     let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
-                    return Some(iter.map(|ptr| unsafe { ptr.read() }));
+                    return Some(QueueIterOwned::new(iter));
                 }
             }
         }
