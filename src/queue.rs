@@ -97,11 +97,10 @@ where
 /// let vec = queue.into_inner();
 /// assert_eq!(vec, vec![5, 6]);
 /// ```
-///
-/// The following example demonstrates the main purpose of the concurrent queue,
-/// which is to simultaneously push to and pop from the queue.
-/// This enables a dynamic iterator that can be traversed by multiple threads,
-/// which can also dynamically grow during the iteration.
+/// The following example demonstrates the main purpose of the concurrent queue:
+/// to simultaneously push to and pop from the queue.
+/// This enables a parallel program where tasks can be handled by multiple threads,
+/// while at the same time, new tasks can be created and dynamically added to the queue.
 ///
 /// In the following example, the queue is created with three pre-populated tasks.
 /// Every task might potentially lead to new tasks.
