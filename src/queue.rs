@@ -9,7 +9,7 @@ use core::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
-use orx_split_vec::{Doubling, SplitVec};
+use orx_split_vec::{Doubling, SplitVec, prelude::PseudoDefault};
 
 type DefaultPinnedVec<T> = SplitVec<T, Doubling>;
 pub type DefaultConVec<T> = <DefaultPinnedVec<T> as IntoConcurrentPinnedVec<T>>::ConPinnedVec;
@@ -101,8 +101,31 @@ where
     T: Send,
     P: ConcurrentPinnedVec<T>,
 {
-    pub fn len(&self) -> usize {
-        self.written.load(Ordering::Relaxed) - self.popped.load(Ordering::Relaxed)
+    pub fn into_inner(mut self) -> <P as ConcurrentPinnedVec<T>>::P
+    where
+        <P as ConcurrentPinnedVec<T>>::P:
+            PseudoDefault + IntoConcurrentPinnedVec<T, ConPinnedVec = P>,
+    {
+        let vec: <P as ConcurrentPinnedVec<T>>::P = PseudoDefault::pseudo_default();
+        let mut vec = vec.into_concurrent();
+        core::mem::swap(&mut self.vec, &mut vec);
+
+        let a = self.popped.load(Ordering::Relaxed);
+        let b = self.written.load(Ordering::Relaxed);
+        let len = b - a;
+        if a > 0 {
+            let src = unsafe { vec.ptr_iter_unchecked(a..b) };
+            let dst = unsafe { vec.ptr_iter_unchecked(0..len) };
+            for (s, d) in src.zip(dst) {
+                unsafe { d.write(s.read()) };
+            }
+        }
+
+        for x in [&self.written, &self.write_reserved, &self.popped] {
+            x.store(0, Ordering::Relaxed);
+        }
+
+        unsafe { vec.into_inner(len) }
     }
 
     // shrink
@@ -223,6 +246,10 @@ where
 
     // get
 
+    pub fn len(&self) -> usize {
+        self.written.load(Ordering::Relaxed) - self.popped.load(Ordering::Relaxed)
+    }
+
     pub fn iter(&mut self) -> impl ExactSizeIterator<Item = &T> {
         QueueIterOfRef::<T, P>::new(self.ptr_iter())
     }
@@ -267,13 +294,25 @@ where
 #[cfg(test)]
 mod tsts {
     use super::*;
+    use alloc::vec;
+    use alloc::vec::Vec;
     // use crate::*;
 
     #[test]
     fn abc() {
         let queue = ConcurrentQueue::new();
 
-        queue.push(0);
-        queue.push(1);
+        queue.push(0); // [0]
+        queue.push(1); // [0, 1]
+
+        let x = queue.pop(); // [1]
+        assert_eq!(x, Some(0));
+
+        queue.extend(2..5); // [1, 2, 3, 4]
+
+        let x: Vec<_> = queue.pull(3).unwrap().collect(); // [4]
+        assert_eq!(x, vec![1, 2, 3]);
+
+        assert_eq!(queue.len(), 1);
     }
 }

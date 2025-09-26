@@ -191,7 +191,7 @@ dependencies = [
  "orx-fixed-vec 3.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "orx-pinned-concurrent-col",
  "orx-pinned-vec 3.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-pseudo-default",
+ "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "orx-split-vec 3.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -202,7 +202,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31485aa02a0ad52d390951a44f3212bfb9dbf06f6e2c8b4265dc2966d5faf85c"
 dependencies = [
  "orx-iterable",
- "orx-pseudo-default",
+ "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -213,6 +213,7 @@ dependencies = [
  "orx-concurrent-bag",
  "orx-fixed-vec 3.19.0 (git+https://github.com/orxfun/orx-fixed-vec?branch=support-for-concurrent-queue)",
  "orx-pinned-vec 3.17.0 (git+https://github.com/orxfun/orx-pinned-vec?branch=concurrent-queue-support)",
+ "orx-pseudo-default 2.1.0 (sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/)",
  "orx-split-vec 3.19.0 (git+https://github.com/orxfun/orx-split-vec?branch=support-for-concurrent-queue)",
  "test-case",
 ]
@@ -226,7 +227,7 @@ dependencies = [
  "orx-concurrent-iter",
  "orx-iterable",
  "orx-pinned-vec 3.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-pseudo-default",
+ "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -237,7 +238,7 @@ dependencies = [
  "orx-concurrent-iter",
  "orx-iterable",
  "orx-pinned-vec 3.17.0 (git+https://github.com/orxfun/orx-pinned-vec?branch=concurrent-queue-support)",
- "orx-pseudo-default",
+ "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -257,7 +258,7 @@ checksum = "60977176e74a36cb65bdf21b63ae8caecc04f93981021db4d472f3252cbf338c"
 dependencies = [
  "orx-fixed-vec 3.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "orx-pinned-vec 3.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-pseudo-default",
+ "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "orx-split-vec 3.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -268,7 +269,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fcd865a63f5d56134bd5e5d7ffe6e2a6a8458d79f625ebf7b56c43292829e96c"
 dependencies = [
  "orx-iterable",
- "orx-pseudo-default",
+ "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -277,13 +278,19 @@ version = "3.17.0"
 source = "git+https://github.com/orxfun/orx-pinned-vec?branch=concurrent-queue-support#a6d4d86b0f8b334cd02b37c3445b50fecaa5f6ca"
 dependencies = [
  "orx-iterable",
- "orx-pseudo-default",
+ "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "orx-pseudo-default"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34eaace9ae01f7025804fbca40ec45b87c19ba0328d97195e01c6135897762a8"
+
+[[package]]
+name = "orx-pseudo-default"
+version = "2.1.0"
+source = "sparse+https://artifactory.dhl.com/artifactory/api/cargo/cargo-remote/index/"
 checksum = "34eaace9ae01f7025804fbca40ec45b87c19ba0328d97195e01c6135897762a8"
 
 [[package]]
@@ -301,18 +308,18 @@ dependencies = [
  "orx-concurrent-iter",
  "orx-iterable",
  "orx-pinned-vec 3.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "orx-pseudo-default",
+ "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "orx-split-vec"
 version = "3.19.0"
-source = "git+https://github.com/orxfun/orx-split-vec?branch=support-for-concurrent-queue#400813846775f8fcce6eba45ca90e21bf45bf481"
+source = "git+https://github.com/orxfun/orx-split-vec?branch=support-for-concurrent-queue#45bbc65ae55c5b0ceed68121c124f4f85eeac733"
 dependencies = [
  "orx-concurrent-iter",
  "orx-iterable",
  "orx-pinned-vec 3.17.0 (git+https://github.com/orxfun/orx-pinned-vec?branch=concurrent-queue-support)",
- "orx-pseudo-default",
+ "orx-pseudo-default 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
