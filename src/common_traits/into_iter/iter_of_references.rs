@@ -17,8 +17,20 @@ use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
 
 pub struct QueueIterOfRefs<'a, T, P>
 where
-    T: Send,
-    P: ConcurrentPinnedVec<T>,
+    T: Send + 'a,
+    P: ConcurrentPinnedVec<T> + 'a,
 {
-    queue: &'a mut ConcurrentQueue<T, P>,
+    iter: P::PtrIter<'a>,
+}
+
+impl<'a, T, P> Iterator for QueueIterOfRefs<'a, T, P>
+where
+    T: Send + 'a,
+    P: ConcurrentPinnedVec<T> + 'a,
+{
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|ptr| unsafe { &*ptr })
+    }
 }

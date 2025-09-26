@@ -232,7 +232,7 @@ dependencies = [
 [[package]]
 name = "orx-fixed-vec"
 version = "3.19.0"
-source = "git+https://github.com/orxfun/orx-fixed-vec?branch=support-for-concurrent-queue#73d52e3dab41d8ca85195dda3ed5797a2910d072"
+source = "git+https://github.com/orxfun/orx-fixed-vec?branch=support-for-concurrent-queue#f8aeb6e87deabb00befbd9e61ccc89432e5cbeb5"
 dependencies = [
  "orx-concurrent-iter",
  "orx-iterable",
@@ -274,7 +274,7 @@ dependencies = [
 [[package]]
 name = "orx-pinned-vec"
 version = "3.17.0"
-source = "git+https://github.com/orxfun/orx-pinned-vec?branch=concurrent-queue-support#379a37d3c9ea8875084257d92bb2433a25254faa"
+source = "git+https://github.com/orxfun/orx-pinned-vec?branch=concurrent-queue-support#a6d4d86b0f8b334cd02b37c3445b50fecaa5f6ca"
 dependencies = [
  "orx-iterable",
  "orx-pseudo-default",
@@ -307,7 +307,7 @@ dependencies = [
 [[package]]
 name = "orx-split-vec"
 version = "3.19.0"
-source = "git+https://github.com/orxfun/orx-split-vec?branch=support-for-concurrent-queue#4314608b3e5cf6a783e07b29f0f18d4e4ad27664"
+source = "git+https://github.com/orxfun/orx-split-vec?branch=support-for-concurrent-queue#400813846775f8fcce6eba45ca90e21bf45bf481"
 dependencies = [
  "orx-concurrent-iter",
  "orx-iterable",
