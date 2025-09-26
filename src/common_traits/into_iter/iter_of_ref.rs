@@ -1,21 +1,6 @@
-use crate::ConcurrentQueue;
-use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
+use orx_pinned_vec::ConcurrentPinnedVec;
 
-// impl<'a, T, P> IntoIterator for &'a ConcurrentQueue<T, P>
-// where
-//     T: Send,
-//     P: ConcurrentPinnedVec<T>,
-// {
-//     type Item = &'a T;
-
-//     type IntoIter;
-
-//     fn into_iter(self) -> Self::IntoIter {
-//         todo!()
-//     }
-// }
-
-pub struct QueueIterOfRefs<'a, T, P>
+pub struct QueueIterOfRef<'a, T, P>
 where
     T: Send + 'a,
     P: ConcurrentPinnedVec<T> + 'a,
@@ -23,7 +8,7 @@ where
     iter: P::PtrIter<'a>,
 }
 
-impl<'a, T, P> QueueIterOfRefs<'a, T, P>
+impl<'a, T, P> QueueIterOfRef<'a, T, P>
 where
     T: Send + 'a,
     P: ConcurrentPinnedVec<T> + 'a,
@@ -33,7 +18,7 @@ where
     }
 }
 
-impl<'a, T, P> Iterator for QueueIterOfRefs<'a, T, P>
+impl<'a, T, P> Iterator for QueueIterOfRef<'a, T, P>
 where
     T: Send + 'a,
     P: ConcurrentPinnedVec<T> + 'a,
@@ -49,7 +34,7 @@ where
     }
 }
 
-impl<'a, T, P> ExactSizeIterator for QueueIterOfRefs<'a, T, P>
+impl<'a, T, P> ExactSizeIterator for QueueIterOfRef<'a, T, P>
 where
     T: Send + 'a,
     P: ConcurrentPinnedVec<T> + 'a,
