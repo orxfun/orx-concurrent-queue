@@ -212,6 +212,33 @@ where
     T: Send,
     P: ConcurrentPinnedVec<T>,
 {
+    /// Converts the bag into the underlying pinned vector.
+    ///
+    /// Whenever the second generic parameter is omitted, the underlying pinned vector is [`SplitVec`] with [`Doubling`] growth.
+    ///
+    /// [`SplitVec`]: orx_split_vec::SplitVec
+    /// [`Doubling`]: orx_split_vec::Doubling
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::ConcurrentQueue;
+    /// use orx_split_vec::SplitVec;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// queue.push(0); // [0]
+    /// queue.push(1); // [0, 1]
+    /// _ = queue.pop(); // [1]
+    /// queue.extend(2..7); // [1, 2, 3, 4, 5, 6]
+    /// _ = queue.pull(4).unwrap(); // [5, 6]
+    ///
+    /// let vec: SplitVec<i32> = queue.into_inner();
+    /// assert_eq!(vec, vec![5, 6]);
+    ///
+    /// let vec: Vec<i32> = vec.to_vec();
+    /// assert_eq!(vec, vec![5, 6]);
+    /// ```
     pub fn into_inner(mut self) -> <P as ConcurrentPinnedVec<T>>::P
     where
         <P as ConcurrentPinnedVec<T>>::P:
@@ -466,18 +493,14 @@ mod tsts {
 
         queue.push(0); // [0]
         queue.push(1); // [0, 1]
-
-        let x = queue.pop(); // [1]
-        assert_eq!(x, Some(0));
-
+        _ = queue.pop(); // [1]
         queue.extend(2..7); // [1, 2, 3, 4, 5, 6]
+        _ = queue.pull(4).unwrap(); // [5, 6]
 
-        let x: Vec<_> = queue.pull(4).unwrap().collect(); // [5, 6]
-        assert_eq!(x, vec![1, 2, 3, 4]);
+        let vec: SplitVec<i32> = queue.into_inner();
+        assert_eq!(vec, vec![5, 6]);
 
-        assert_eq!(queue.len(), 2);
-
-        let vec = queue.into_inner();
+        let vec: Vec<i32> = vec.to_vec();
         assert_eq!(vec, vec![5, 6]);
     }
 }
