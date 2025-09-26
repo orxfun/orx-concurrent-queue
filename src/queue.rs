@@ -246,7 +246,7 @@ where
         self.popped.load(Ordering::Relaxed)..self.written.load(Ordering::Relaxed)
     }
 
-    pub(super) fn ptr_iter(&mut self) -> impl ExactSizeIterator<Item = *mut T> {
+    pub(super) fn ptr_iter(&mut self) -> P::PtrIter<'_> {
         let range = self.valid_range();
         // SAFETY: with a mut ref, we ensure that the range contains all and only valid values
         unsafe { self.vec.ptr_iter_unchecked(range) }
