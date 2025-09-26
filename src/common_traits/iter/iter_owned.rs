@@ -51,7 +51,7 @@ where
     P: ConcurrentPinnedVec<T> + 'a,
 {
     fn drop(&mut self) {
-        while let Some(ptr) = self.iter.next() {
+        for ptr in self.iter.by_ref() {
             unsafe { ptr.drop_in_place() };
         }
     }
