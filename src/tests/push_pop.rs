@@ -1,4 +1,5 @@
 use crate::queue::ConcurrentQueue;
+use alloc::string::ToString;
 use orx_concurrent_bag::ConcurrentBag;
 use orx_fixed_vec::FixedVec;
 use orx_pinned_vec::IntoConcurrentPinnedVec;
@@ -72,10 +73,6 @@ where
     if let Some(mut prev) = iter.next() {
         for c in iter {
             potential.contains(&c);
-            if prev == c {
-                let v = collected.iter().cloned().take(10).collect::<Vec<_>>();
-                dbg!(v);
-            }
             assert_ne!(prev, c);
             prev = c;
         }

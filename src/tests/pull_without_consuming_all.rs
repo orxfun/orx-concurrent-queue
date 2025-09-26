@@ -1,7 +1,5 @@
 use crate::queue::ConcurrentQueue;
 use alloc::string::ToString;
-use alloc::vec::Vec;
-use orx_concurrent_bag::ConcurrentBag;
 use orx_fixed_vec::FixedVec;
 use orx_pinned_vec::IntoConcurrentPinnedVec;
 use orx_split_vec::SplitVec;
@@ -26,8 +24,12 @@ const NUM_PULLERS: usize = 4;
     [|x| x, |x| x.to_string()],
     [1, 14, 10000])
 ]
-fn pull<P, T>(p: TryPull, mut vec: P, f: impl Fn(usize) -> T + Sync, chunk_size: usize)
-where
+fn pull_without_consuming_all<P, T>(
+    p: TryPull,
+    mut vec: P,
+    f: impl Fn(usize) -> T + Sync,
+    chunk_size: usize,
+) where
     P: IntoConcurrentPinnedVec<T>,
     T: Send + Clone + Ord + Debug,
 {
@@ -40,7 +42,6 @@ where
 
     let queue = ConcurrentQueue::from(vec);
     let q = &queue;
-    let collected = ConcurrentBag::new();
 
     let num_pop = match p {
         TryPull::Fewer => N.saturating_sub(25) / chunk_size,
@@ -51,19 +52,11 @@ where
         for _ in 0..NUM_PULLERS {
             s.spawn(|| {
                 for _ in 0..num_pop {
-                    if let Some(value) = q.pull(chunk_size) {
-                        collected.extend(value);
+                    if let Some(_value) = q.pull(chunk_size) {
+                        // pulled iterator is not consumed, must be dropped properly
                     }
                 }
             });
         }
     });
-
-    let mut collected = collected.into_inner().to_vec();
-    collected.sort();
-
-    let mut expected: Vec<_> = (0..collected.len()).map(f).collect();
-    expected.sort();
-
-    assert_eq!(collected, expected);
 }
