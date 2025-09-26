@@ -62,8 +62,8 @@ where
     }
 }
 
-/// A thread safe queue that allows [`push`] and [`extend`] to concurrently add items to the back of the queue
-/// while at the same time allowing [`pop`] and [`pull`] to remove items from the front.
+/// A high performance and convenient thread safe queue that can concurrently
+/// grow and shrink with [`push`], [`extend`], [`pop`] and [`pull`] capabilities.
 ///
 /// [`push`]: crate::ConcurrentQueue::push
 /// [`extend`]: crate::ConcurrentQueue::extend

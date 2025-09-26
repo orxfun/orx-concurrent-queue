@@ -4,7 +4,7 @@
 [![orx-concurrent-queue crate](https://img.shields.io/crates/d/orx-concurrent-queue.svg)](https://crates.io/crates/orx-concurrent-queue)
 [![orx-concurrent-queue documentation](https://docs.rs/orx-concurrent-queue/badge.svg)](https://docs.rs/orx-concurrent-queue)
 
-A high performance and convenient thread safe queue with push, extend, pop and pull capabilities.
+A high performance and convenient thread safe queue that can concurrently grow and shrink with push, extend, pop and pull capabilities.
 
 ## ConcurrentQueue Examples
 
