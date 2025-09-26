@@ -12,8 +12,8 @@
 )]
 #![no_std]
 
+#[cfg(test)]
 extern crate alloc;
-
 #[cfg(test)]
 extern crate std;
 #[cfg(test)]
