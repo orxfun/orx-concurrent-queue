@@ -4,6 +4,7 @@ use crate::{
 };
 use core::{
     marker::PhantomData,
+    ops::Range,
     sync::atomic::{AtomicUsize, Ordering},
 };
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
@@ -37,6 +38,8 @@ where
 /// [`extend`]: crate::ConcurrentQueue::extend
 /// [`pop`]: crate::ConcurrentQueue::pop
 /// [`pull`]: crate::ConcurrentQueue::pull
+///
+/// # Examples
 pub struct ConcurrentQueue<T, P = DefaultConVec<T>>
 where
     T: Send,
@@ -237,5 +240,29 @@ where
             .vec
             .grow_to(new_capacity)
             .expect("The underlying pinned vector reached its capacity and failed to grow");
+    }
+
+    fn valid_range(&mut self) -> Range<usize> {
+        self.popped.load(Ordering::Relaxed)..self.written.load(Ordering::Relaxed)
+    }
+
+    pub(super) fn ptr_iter(&mut self) -> impl ExactSizeIterator<Item = *mut T> {
+        let range = self.valid_range();
+        // SAFETY: with a mut ref, we ensure that the range contains all and only valid values
+        unsafe { self.vec.ptr_iter_unchecked(range) }
+    }
+}
+
+#[cfg(test)]
+mod tsts {
+    use super::*;
+    // use crate::*;
+
+    #[test]
+    fn abc() {
+        let queue = ConcurrentQueue::new();
+
+        queue.push(0);
+        queue.push(1);
     }
 }

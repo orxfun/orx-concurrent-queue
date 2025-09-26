@@ -20,6 +20,7 @@ extern crate std;
 mod tests;
 
 mod atomic_utils;
+mod common_traits;
 mod queue;
 mod write_permit;
 
