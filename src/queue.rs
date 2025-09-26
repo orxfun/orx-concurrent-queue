@@ -1,6 +1,6 @@
 use crate::{
     atomic_utils::{comp_exch, comp_exch_weak},
-    common_traits::iter::QueueIterOfRef,
+    common_traits::iter::{QueueIterOfMut, QueueIterOfRef},
     write_permit::WritePermit,
 };
 use core::{
@@ -225,6 +225,10 @@ where
 
     pub fn iter(&mut self) -> impl ExactSizeIterator<Item = &T> {
         QueueIterOfRef::<T, P>::new(self.ptr_iter())
+    }
+
+    pub fn iter_mut(&mut self) -> impl ExactSizeIterator<Item = &mut T> {
+        QueueIterOfMut::<T, P>::new(self.ptr_iter())
     }
 
     // helpers
