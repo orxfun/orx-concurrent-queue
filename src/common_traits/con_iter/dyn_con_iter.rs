@@ -1,3 +1,5 @@
+use core::sync::atomic::Ordering;
+
 use crate::{
     ConcurrentQueue, common_traits::con_iter::chunk_puller::DynChunkPuller, queue::DefaultConVec,
 };
@@ -38,7 +40,8 @@ where
     }
 
     fn skip_to_end(&self) {
-        todo!()
+        let len = self.queue.write_reserved(Ordering::Acquire);
+        let _remaining_to_drop = self.queue.pull(len);
     }
 
     fn next(&self) -> Option<Self::Item> {

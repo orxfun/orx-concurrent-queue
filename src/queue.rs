@@ -635,4 +635,8 @@ where
 
         vec
     }
+
+    pub(super) fn write_reserved(&self, order: Ordering) -> usize {
+        self.write_reserved.load(order)
+    }
 }
