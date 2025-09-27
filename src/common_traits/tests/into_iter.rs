@@ -1,8 +1,26 @@
 use crate::ConcurrentQueue;
+use orx_fixed_vec::FixedVec;
+use orx_pinned_vec::IntoConcurrentPinnedVec;
+use orx_split_vec::SplitVec;
 use std::string::{String, ToString};
+use test_case::test_matrix;
+
+#[test_matrix([
+    FixedVec::new(20),
+    SplitVec::with_doubling_growth_and_max_concurrent_capacity(),
+    SplitVec::with_linear_growth_and_fragments_capacity(2, 64),
+])]
+fn into_iter_empty<P>(vec: P)
+where
+    P: IntoConcurrentPinnedVec<String>,
+{
+    let queue = ConcurrentQueue::from(vec);
+    let iter = queue.into_iter();
+    assert_eq!(iter.count(), 0);
+}
 
 #[test]
-fn into_iter_empty() {
+fn into_iter_fully_used() {
     let queue = ConcurrentQueue::<String>::new();
     queue.push("a".to_string());
     let iter = queue.into_iter();
