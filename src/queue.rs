@@ -395,6 +395,48 @@ where
         }
     }
 
+    pub(super) fn pull_with_idx(
+        &self,
+        chunk_size: usize,
+    ) -> Option<(usize, QueueIterOwned<'_, T, P>)> {
+        match chunk_size > 0 {
+            true => {
+                let begin_idx = self.popped.fetch_add(chunk_size, Ordering::Relaxed);
+                let end_idx = begin_idx + chunk_size;
+
+                loop {
+                    let written = self.written.load(Ordering::Acquire);
+
+                    let has_none = begin_idx >= written;
+                    let has_some = !has_none;
+                    let has_all = end_idx <= written;
+
+                    let range = match (has_some, has_all) {
+                        (false, _) => match comp_exch(&self.popped, end_idx, begin_idx).is_ok() {
+                            true => return None,
+                            false => None,
+                        },
+                        (true, true) => Some(begin_idx..end_idx),
+                        (true, false) => Some(begin_idx..written),
+                    };
+
+                    if let Some(range) = range {
+                        let ok = match has_all {
+                            true => true,
+                            false => comp_exch(&self.popped, end_idx, range.end).is_ok(),
+                        };
+
+                        if ok {
+                            let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
+                            return Some((begin_idx, QueueIterOwned::new(iter)));
+                        }
+                    }
+                }
+            }
+            false => None,
+        }
+    }
+
     // grow
 
     /// Pushes the `value` to the back of the queue.
