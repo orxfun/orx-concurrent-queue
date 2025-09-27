@@ -19,10 +19,21 @@ where
     assert_eq!(iter.count(), 0);
 }
 
-#[test]
-fn into_iter_fully_used() {
-    let queue = ConcurrentQueue::<String>::new();
-    queue.push("a".to_string());
+#[test_matrix([
+    FixedVec::new(30),
+    SplitVec::with_doubling_growth_and_max_concurrent_capacity(),
+    SplitVec::with_linear_growth_and_fragments_capacity(2, 64),
+])]
+fn into_iter_fully_used<P>(vec: P)
+where
+    P: IntoConcurrentPinnedVec<String>,
+{
+    let queue = ConcurrentQueue::from(vec);
+    for i in 0..20 {
+        queue.push(i.to_string());
+    }
+    while let Some(_) = queue.pop() {}
+
     let iter = queue.into_iter();
-    assert_eq!(iter.count(), 1);
+    assert_eq!(iter.count(), 0);
 }
