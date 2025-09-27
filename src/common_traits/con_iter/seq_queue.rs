@@ -22,6 +22,16 @@ where
     I: IntoIterator<Item = T>,
     I::IntoIter: ExactSizeIterator,
 {
+    pub(super) fn new(vec: P, written: usize, popped: usize, extend: E) -> Self {
+        Self {
+            vec,
+            written,
+            popped,
+            extend,
+            phantom: PhantomData,
+        }
+    }
+
     #[inline(always)]
     unsafe fn ptr(&self, idx: usize) -> *mut T {
         unsafe { self.vec.get_ptr_mut(idx) }

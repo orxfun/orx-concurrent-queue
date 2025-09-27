@@ -681,10 +681,16 @@ where
         unsafe { self.vec.ptr_iter_unchecked(range) }
     }
 
-    pub(super) fn into_con_pinvec(mut self) -> P
+    pub(super) fn destruct(mut self) -> (P, usize, usize)
     where
         <P as ConcurrentPinnedVec<T>>::P: IntoConcurrentPinnedVec<T, ConPinnedVec = P>,
     {
+        let popped = self.popped.load(Ordering::Relaxed);
+        let write_reserved = self.write_reserved.load(Ordering::Relaxed);
+        let written = self.written.load(Ordering::Relaxed);
+        debug_assert_eq!(written, write_reserved);
+        debug_assert!(written >= popped);
+
         let vec: <P as ConcurrentPinnedVec<T>>::P = PseudoDefault::pseudo_default();
         let mut vec = vec.into_concurrent();
         core::mem::swap(&mut self.vec, &mut vec);
@@ -693,7 +699,7 @@ where
         self.write_reserved.store(0, Ordering::Relaxed);
         self.written.store(0, Ordering::Relaxed);
 
-        vec
+        (vec, written, popped)
     }
 
     pub(super) fn write_reserved(&self, order: Ordering) -> usize {

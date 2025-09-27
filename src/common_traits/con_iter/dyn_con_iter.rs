@@ -1,9 +1,11 @@
 use crate::{
-    ConcurrentQueue, common_traits::con_iter::chunk_puller::DynChunkPuller, queue::DefaultConVec,
+    ConcurrentQueue,
+    common_traits::con_iter::{chunk_puller::DynChunkPuller, seq_queue::DynSeqQueue},
+    queue::DefaultConVec,
 };
 use core::sync::atomic::Ordering;
 use orx_concurrent_iter::ConcurrentIter;
-use orx_pinned_vec::ConcurrentPinnedVec;
+use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
 
 pub struct DynamicConcurrentIter<T, E, I, P = DefaultConVec<T>>
 where
@@ -12,6 +14,7 @@ where
     I: IntoIterator<Item = T>,
     I::IntoIter: ExactSizeIterator,
     P: ConcurrentPinnedVec<T>,
+    <P as ConcurrentPinnedVec<T>>::P: IntoConcurrentPinnedVec<T, ConPinnedVec = P>,
 {
     queue: ConcurrentQueue<T, P>,
     extend: E,
@@ -24,10 +27,11 @@ where
     I: IntoIterator<Item = T>,
     I::IntoIter: ExactSizeIterator,
     P: ConcurrentPinnedVec<T>,
+    <P as ConcurrentPinnedVec<T>>::P: IntoConcurrentPinnedVec<T, ConPinnedVec = P>,
 {
     type Item = T;
 
-    type SequentialIter = core::iter::Empty<T>;
+    type SequentialIter = DynSeqQueue<T, P, E, I>;
 
     type ChunkPuller<'i>
         = DynChunkPuller<'i, T, E, I, P>
@@ -35,7 +39,8 @@ where
         Self: 'i;
 
     fn into_seq_iter(self) -> Self::SequentialIter {
-        todo!()
+        let (vec, written, popped) = self.queue.destruct();
+        DynSeqQueue::new(vec, written, popped, self.extend)
     }
 
     fn skip_to_end(&self) {

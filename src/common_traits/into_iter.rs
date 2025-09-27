@@ -13,7 +13,7 @@ where
 
     fn into_iter(mut self) -> Self::IntoIter {
         let range = self.valid_range();
-        let convec = self.into_con_pinvec();
+        let convec = self.destruct().0;
         // SAFETY: range is the only place with valid elements; positions on other sections
         // are either not initialized or popped.
         unsafe { convec.into_iter(range) }
