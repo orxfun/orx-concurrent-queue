@@ -1,8 +1,7 @@
-use core::sync::atomic::Ordering;
-
 use crate::{
     ConcurrentQueue, common_traits::con_iter::chunk_puller::DynChunkPuller, queue::DefaultConVec,
 };
+use core::sync::atomic::Ordering;
 use orx_concurrent_iter::ConcurrentIter;
 use orx_pinned_vec::ConcurrentPinnedVec;
 
@@ -56,7 +55,8 @@ where
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        todo!()
+        let min = self.queue.len();
+        (min, None)
     }
 
     fn chunk_puller(&self, chunk_size: usize) -> Self::ChunkPuller<'_> {
