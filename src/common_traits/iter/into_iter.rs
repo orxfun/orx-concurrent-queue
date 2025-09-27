@@ -1,9 +1,9 @@
 use orx_pinned_vec::ConcurrentPinnedVec;
 
-pub struct QueueIterOwned<'a, T, P>
+pub struct QueueIntoIter<T, P>
 where
-    T: Send + 'a,
-    P: ConcurrentPinnedVec<T> + 'a,
+    T: Send,
+    P: ConcurrentPinnedVec<T>,
 {
-    iter: P::PtrIter<'a>,
+    iter: P::IntoIter,
 }
