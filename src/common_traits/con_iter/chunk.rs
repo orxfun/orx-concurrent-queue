@@ -14,6 +14,27 @@ where
     queue: &'a ConcurrentQueue<T, P>,
 }
 
+impl<'a, T, E, I, P> DynChunk<'a, T, E, I, P>
+where
+    T: Send,
+    E: Fn(&T) -> I + Sync,
+    I: IntoIterator<Item = T>,
+    I::IntoIter: ExactSizeIterator,
+    P: ConcurrentPinnedVec<T>,
+{
+    pub(super) fn new(
+        chunk: QueueIterOwned<'a, T, P>,
+        extend: &'a E,
+        queue: &'a ConcurrentQueue<T, P>,
+    ) -> Self {
+        Self {
+            chunk,
+            extend,
+            queue,
+        }
+    }
+}
+
 impl<'a, T, E, I, P> Default for DynChunk<'a, T, E, I, P>
 where
     T: Send,

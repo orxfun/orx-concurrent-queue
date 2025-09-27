@@ -12,6 +12,7 @@ where
 {
     extend: &'a E,
     queue: &'a ConcurrentQueue<T, P>,
+    chunk_size: usize,
 }
 
 impl<'a, T, E, I, P> DynChunkPuller<'a, T, E, I, P>
@@ -22,8 +23,12 @@ where
     I::IntoIter: ExactSizeIterator,
     P: ConcurrentPinnedVec<T>,
 {
-    pub(super) fn new(extend: &'a E, queue: &'a ConcurrentQueue<T, P>) -> Self {
-        Self { extend, queue }
+    pub(super) fn new(extend: &'a E, queue: &'a ConcurrentQueue<T, P>, chunk_size: usize) -> Self {
+        Self {
+            extend,
+            queue,
+            chunk_size,
+        }
     }
 }
 
@@ -42,12 +47,14 @@ where
     where
         Self: 'c;
 
+    #[inline(always)]
     fn chunk_size(&self) -> usize {
-        todo!()
+        self.chunk_size
     }
 
     fn pull(&mut self) -> Option<Self::Chunk<'_>> {
-        todo!()
+        let chunk = self.queue.pull(self.chunk_size);
+        chunk.map(|chunk| DynChunk::new(chunk, self.extend, self.queue))
     }
 
     fn pull_with_idx(&mut self) -> Option<(usize, Self::Chunk<'_>)> {
