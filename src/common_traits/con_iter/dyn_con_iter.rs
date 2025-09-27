@@ -42,7 +42,10 @@ where
     }
 
     fn next(&self) -> Option<Self::Item> {
-        todo!()
+        let n = self.queue.pop()?;
+        let children = (self.extend)(&n);
+        self.queue.extend(children);
+        Some(n)
     }
 
     fn next_with_idx(&self) -> Option<(usize, Self::Item)> {
