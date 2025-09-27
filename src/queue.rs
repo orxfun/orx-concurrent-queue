@@ -377,6 +377,24 @@ where
         }
     }
 
+    // shrink with idx
+
+    pub(super) fn pop_with_idx(&self) -> Option<(usize, T)> {
+        let idx = self.popped.fetch_add(1, Ordering::Relaxed);
+
+        loop {
+            let written = self.written.load(Ordering::Acquire);
+            match idx < written {
+                true => return Some((idx, unsafe { self.ptr(idx).read() })),
+                false => {
+                    if comp_exch(&self.popped, idx + 1, idx).is_ok() {
+                        return None;
+                    }
+                }
+            }
+        }
+    }
+
     // grow
 
     /// Pushes the `value` to the back of the queue.
