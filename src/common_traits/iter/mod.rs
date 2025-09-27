@@ -1,3 +1,4 @@
+mod into_iter;
 mod iter_of_mut;
 mod iter_of_ref;
 mod iter_owned;
