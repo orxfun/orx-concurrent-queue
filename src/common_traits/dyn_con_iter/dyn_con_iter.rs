@@ -1,6 +1,6 @@
 use crate::{
     ConcurrentQueue,
-    common_traits::con_iter::{chunk_puller::DynChunkPuller, seq_queue::DynSeqQueue},
+    common_traits::dyn_con_iter::{chunk_puller::DynChunkPuller, seq_queue::DynSeqQueue},
     queue::DefaultConVec,
 };
 use core::sync::atomic::Ordering;
@@ -18,6 +18,20 @@ where
 {
     queue: ConcurrentQueue<T, P>,
     extend: E,
+}
+
+impl<T, E, I, P> DynamicConcurrentIter<T, E, I, P>
+where
+    T: Send,
+    E: Fn(&T) -> I + Sync,
+    I: IntoIterator<Item = T>,
+    I::IntoIter: ExactSizeIterator,
+    P: ConcurrentPinnedVec<T>,
+    <P as ConcurrentPinnedVec<T>>::P: IntoConcurrentPinnedVec<T, ConPinnedVec = P>,
+{
+    pub fn new(queue: ConcurrentQueue<T, P>, extend: E) -> Self {
+        Self { queue, extend }
+    }
 }
 
 impl<T, E, I, P> ConcurrentIter for DynamicConcurrentIter<T, E, I, P>
