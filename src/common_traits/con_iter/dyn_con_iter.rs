@@ -51,7 +51,10 @@ where
     }
 
     fn next_with_idx(&self) -> Option<(usize, Self::Item)> {
-        todo!()
+        let (idx, n) = self.queue.pop_with_idx()?;
+        let children = (self.extend)(&n);
+        self.queue.extend(children);
+        Some((idx, n))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
