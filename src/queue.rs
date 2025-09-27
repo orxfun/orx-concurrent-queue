@@ -186,9 +186,7 @@ where
     fn drop(&mut self) {
         if core::mem::needs_drop::<T>() {
             let popped = self.popped.load(Ordering::Relaxed);
-            let reserved = self.write_reserved.load(Ordering::Relaxed);
             let written = self.written.load(Ordering::Relaxed);
-            assert_eq!(reserved, written);
             for i in popped..written {
                 let ptr = unsafe { self.ptr(i) };
                 unsafe { ptr.drop_in_place() };
