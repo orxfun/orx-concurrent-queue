@@ -611,13 +611,29 @@ where
             .expect("The underlying pinned vector reached its capacity and failed to grow");
     }
 
-    fn valid_range(&mut self) -> Range<usize> {
+    pub(super) fn valid_range(&mut self) -> Range<usize> {
         self.popped.load(Ordering::Relaxed)..self.written.load(Ordering::Relaxed)
     }
 
-    pub(crate) fn ptr_iter(&mut self) -> P::PtrIter<'_> {
+    pub(super) fn ptr_iter(&mut self) -> P::PtrIter<'_> {
         let range = self.valid_range();
         // SAFETY: with a mut ref, we ensure that the range contains all and only valid values
         unsafe { self.vec.ptr_iter_unchecked(range) }
+    }
+
+    pub(super) fn into_con_pinvec(mut self) -> P
+    where
+        <P as ConcurrentPinnedVec<T>>::P:
+            PseudoDefault + IntoConcurrentPinnedVec<T, ConPinnedVec = P>,
+    {
+        let vec: <P as ConcurrentPinnedVec<T>>::P = PseudoDefault::pseudo_default();
+        let mut vec = vec.into_concurrent();
+        core::mem::swap(&mut self.vec, &mut vec);
+
+        self.popped.store(0, Ordering::Relaxed);
+        self.write_reserved.store(0, Ordering::Relaxed);
+        self.written.store(0, Ordering::Relaxed);
+
+        vec
     }
 }
