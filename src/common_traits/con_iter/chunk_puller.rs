@@ -53,11 +53,12 @@ where
     }
 
     fn pull(&mut self) -> Option<Self::Chunk<'_>> {
-        let chunk = self.queue.pull(self.chunk_size);
-        chunk.map(|chunk| DynChunk::new(chunk, self.extend, self.queue))
+        let chunk = self.queue.pull(self.chunk_size)?;
+        Some(DynChunk::new(chunk, self.extend, self.queue))
     }
 
     fn pull_with_idx(&mut self) -> Option<(usize, Self::Chunk<'_>)> {
-        todo!()
+        let (begin_idx, chunk) = self.queue.pull_with_idx(self.chunk_size)?;
+        Some((begin_idx, DynChunk::new(chunk, self.extend, self.queue)))
     }
 }
