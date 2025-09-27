@@ -241,7 +241,7 @@ dependencies = [
 [[package]]
 name = "orx-fixed-vec"
 version = "3.20.0"
-source = "git+https://github.com/orxfun/orx-fixed-vec/?branch=into-iter-for-concurrent-pinned-vec#b1a4aa3bff98170244c06c523512dd8519525a97"
+source = "git+https://github.com/orxfun/orx-fixed-vec/?branch=into-iter-for-concurrent-pinned-vec#0851a715726652b261df56b696c3fd43acf196b5"
 dependencies = [
  "orx-concurrent-iter 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "orx-iterable",
@@ -316,7 +316,7 @@ dependencies = [
 [[package]]
 name = "orx-split-vec"
 version = "3.21.0"
-source = "git+https://github.com/orxfun/orx-split-vec/?branch=into-iter-for-concurrent-pinned-vec#a8acc13ac53352f764fead22017e3b5e3c69f974"
+source = "git+https://github.com/orxfun/orx-split-vec/?branch=into-iter-for-concurrent-pinned-vec#c3ff5aef5199b67312caba7dd4e6134d59d4e0d7"
 dependencies = [
  "orx-concurrent-iter 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "orx-iterable",
