@@ -14,6 +14,20 @@ where
     queue: &'a ConcurrentQueue<T, P>,
 }
 
+impl<'a, T, E, I, P> Default for DynChunk<'a, T, E, I, P>
+where
+    T: Send,
+    E: Fn(&T) -> I + Sync,
+    I: IntoIterator<Item = T>,
+    I::IntoIter: ExactSizeIterator,
+    P: ConcurrentPinnedVec<T>,
+{
+    fn default() -> Self {
+        let x = 12;
+        todo!()
+    }
+}
+
 impl<'a, T, E, I, P> Iterator for DynChunk<'a, T, E, I, P>
 where
     T: Send,
