@@ -30,4 +30,24 @@ where
         self.queue.extend(children);
         Some(n)
     }
+
+    #[inline(always)]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.chunk.len();
+        (len, Some(len))
+    }
+}
+
+impl<'a, T, E, I, P> ExactSizeIterator for DynChunk<'a, T, E, I, P>
+where
+    T: Send,
+    E: Fn(&T) -> I + Sync,
+    I: IntoIterator<Item = T>,
+    I::IntoIter: ExactSizeIterator,
+    P: ConcurrentPinnedVec<T>,
+{
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.chunk.len()
+    }
 }
