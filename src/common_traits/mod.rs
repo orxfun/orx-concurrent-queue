@@ -1,3 +1,4 @@
+mod into_iter;
 pub mod iter;
 
 #[cfg(feature = "orx-concurrent-iter")]

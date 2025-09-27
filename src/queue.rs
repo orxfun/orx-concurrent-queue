@@ -623,8 +623,7 @@ where
 
     pub(super) fn into_con_pinvec(mut self) -> P
     where
-        <P as ConcurrentPinnedVec<T>>::P:
-            PseudoDefault + IntoConcurrentPinnedVec<T, ConPinnedVec = P>,
+        <P as ConcurrentPinnedVec<T>>::P: IntoConcurrentPinnedVec<T, ConPinnedVec = P>,
     {
         let vec: <P as ConcurrentPinnedVec<T>>::P = PseudoDefault::pseudo_default();
         let mut vec = vec.into_concurrent();
