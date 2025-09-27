@@ -5,7 +5,7 @@ use orx_pinned_vec::ConcurrentPinnedVec;
 pub struct DynamicConcurrentIter<T, E, I, P = DefaultConVec<T>>
 where
     T: Send,
-    E: Fn(&T) -> I,
+    E: Fn(&T) -> I + Sync,
     I: IntoIterator<Item = T>,
     P: ConcurrentPinnedVec<T>,
 {
@@ -13,42 +13,42 @@ where
     extend: E,
 }
 
-// impl<T, E, I, P> ConcurrentIter for DynamicConcurrentIter<T, E, I, P>
-// where
-//     T: Send,
-//     E: Fn(&T) -> I,
-//     I: IntoIterator<Item = T>,
-//     P: ConcurrentPinnedVec<T>,
-// {
-//     type Item = T;
+impl<T, E, I, P> ConcurrentIter for DynamicConcurrentIter<T, E, I, P>
+where
+    T: Send,
+    E: Fn(&T) -> I + Sync,
+    I: IntoIterator<Item = T>,
+    P: ConcurrentPinnedVec<T>,
+{
+    type Item = T;
 
-//     type SequentialIter;
+    type SequentialIter = core::iter::Empty<T>;
 
-//     type ChunkPuller<'i>
-//     where
-//         Self: 'i;
+    type ChunkPuller<'i>
+    where
+        Self: 'i;
 
-//     fn into_seq_iter(self) -> Self::SequentialIter {
-//         todo!()
-//     }
+    fn into_seq_iter(self) -> Self::SequentialIter {
+        todo!()
+    }
 
-//     fn skip_to_end(&self) {
-//         todo!()
-//     }
+    fn skip_to_end(&self) {
+        todo!()
+    }
 
-//     fn next(&self) -> Option<Self::Item> {
-//         todo!()
-//     }
+    fn next(&self) -> Option<Self::Item> {
+        todo!()
+    }
 
-//     fn next_with_idx(&self) -> Option<(usize, Self::Item)> {
-//         todo!()
-//     }
+    fn next_with_idx(&self) -> Option<(usize, Self::Item)> {
+        todo!()
+    }
 
-//     fn size_hint(&self) -> (usize, Option<usize>) {
-//         todo!()
-//     }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        todo!()
+    }
 
-//     fn chunk_puller(&self, chunk_size: usize) -> Self::ChunkPuller<'_> {
-//         todo!()
-//     }
-// }
+    fn chunk_puller(&self, chunk_size: usize) -> Self::ChunkPuller<'_> {
+        todo!()
+    }
+}
