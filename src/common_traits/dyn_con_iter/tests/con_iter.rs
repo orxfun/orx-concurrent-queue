@@ -513,3 +513,135 @@ fn flattened_chunk_puller_with_idx(n: usize, nt: usize) {
 
     assert_eq_with_idx(&roots, bag);
 }
+
+#[test_matrix([0, 1, N], [1, 2, 4])]
+fn skip_to_end(n: usize, nt: usize) {
+    let roots = Roots::new(n, N_NODE, 3234);
+    let vec = FixedVec::new(roots.num_nodes() + 10);
+    let queue = ConcurrentQueue::from(vec);
+    queue.extend(roots.as_slice());
+    let iter = DynamicConcurrentIter::new(queue, extend);
+
+    let until = n / 2;
+
+    let bag = ConcurrentBag::new();
+    let num_spawned = ConcurrentBag::new();
+    let con_num_spawned = &num_spawned;
+    let con_bag = &bag;
+    let con_iter = &iter;
+    std::thread::scope(|s| {
+        for t in 0..nt {
+            s.spawn(move || {
+                con_num_spawned.push(true);
+                while con_num_spawned.len() < nt {} // allow all threads to be spawned
+
+                match t % 2 {
+                    0 => {
+                        while let Some((idx, node)) = con_iter.next_with_idx() {
+                            match idx < until {
+                                true => _ = con_bag.push(node),
+                                false => con_iter.skip_to_end(),
+                            }
+                        }
+                    }
+                    _ => {
+                        for (idx, node) in con_iter.chunk_puller(7).flattened_with_idx() {
+                            match idx < until {
+                                true => _ = con_bag.push(node),
+                                false => con_iter.skip_to_end(),
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+
+    let mut expected_super_set = Vec::new();
+    expected_super_set.extend(roots.as_slice());
+    let mut i = 0;
+    while let Some(node) = expected_super_set.get(i) {
+        expected_super_set.extend(node.children.iter());
+        i += 1;
+        if i > until {
+            break;
+        }
+    }
+    expected_super_set.sort();
+
+    let mut collected = bag.into_inner().to_vec();
+    collected.sort();
+
+    for x in collected {
+        assert!(expected_super_set.contains(&x));
+    }
+}
+
+#[test_matrix([0, 1, N], [1, 2, 4], [0, N / 2, N])]
+fn into_seq_iter(n: usize, nt: usize, until: usize) {
+    let roots = Roots::new(n, N_NODE, 3234);
+    let vec = FixedVec::new(roots.num_nodes() + 10);
+    let queue = ConcurrentQueue::from(vec);
+    queue.extend(roots.as_slice());
+    let iter = DynamicConcurrentIter::new(queue, extend);
+
+    let bag = ConcurrentBag::new();
+    let num_spawned = ConcurrentBag::new();
+    let con_num_spawned = &num_spawned;
+    let con_bag = &bag;
+    let con_iter = &iter;
+    if until > 0 {
+        std::thread::scope(|s| {
+            for t in 0..nt {
+                s.spawn(move || {
+                    con_num_spawned.push(true);
+                    while con_num_spawned.len() < nt {} // allow all threads to be spawned
+
+                    match t % 2 {
+                        0 => {
+                            while let Some((idx, node)) = con_iter.next_with_idx() {
+                                con_bag.push(node);
+                                if idx >= until {
+                                    break;
+                                }
+                            }
+                        }
+                        _ => {
+                            let mut iter = con_iter.chunk_puller(7);
+                            while let Some((begin_idx, chunk)) = iter.pull_with_idx() {
+                                let mut do_break = false;
+                                for (i, node) in chunk.into_iter().enumerate() {
+                                    con_bag.push(node);
+                                    let idx = begin_idx + i;
+                                    if idx >= until {
+                                        do_break = true;
+                                    }
+                                }
+                                if do_break {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    let iter = iter.into_seq_iter();
+    let remaining: Vec<_> = iter.collect();
+    let collected = bag.into_inner().to_vec();
+    let mut all: Vec<_> = collected.into_iter().chain(remaining).collect();
+    all.sort();
+
+    let mut expected = Vec::new();
+    expected.extend(roots.as_slice());
+    let mut i = 0;
+    while let Some(node) = expected.get(i) {
+        expected.extend(node.children.iter());
+        i += 1;
+    }
+    expected.sort();
+
+    assert_eq!(all, expected);
+}
