@@ -554,7 +554,9 @@ where
     /// assert_eq!(queue.len(), 1);
     /// ```
     pub fn len(&self) -> usize {
-        self.written.load(Ordering::Relaxed) - self.popped.load(Ordering::Relaxed)
+        self.written
+            .load(Ordering::Relaxed)
+            .saturating_sub(self.popped.load(Ordering::Relaxed))
     }
 
     /// Returns true if the queue is empty, false otherwise.
