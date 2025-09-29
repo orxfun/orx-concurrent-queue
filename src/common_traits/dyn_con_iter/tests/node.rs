@@ -54,7 +54,7 @@ impl Roots {
     }
 
     pub fn num_nodes(&self) -> usize {
-        self.0.iter().map(|x| x.num_children()).sum()
+        self.0.len() + self.0.iter().map(|x| x.num_children()).sum::<usize>()
     }
 
     pub fn as_slice(&self) -> &[Node] {

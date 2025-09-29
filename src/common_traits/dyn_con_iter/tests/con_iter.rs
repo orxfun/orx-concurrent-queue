@@ -1,5 +1,3 @@
-use std::dbg;
-
 use crate::{
     ConcurrentQueue,
     common_traits::dyn_con_iter::{
@@ -277,19 +275,7 @@ fn next(n: usize, nt: usize) {
         }
     });
 
-    let mut expected = Vec::new();
-    expected.extend(roots.as_slice());
-    let mut i = 0;
-    while let Some(node) = expected.get(i) {
-        expected.extend(node.children.iter());
-        i += 1;
-    }
-    expected.sort();
-
-    let mut collected = bag.into_inner().to_vec();
-    collected.sort();
-
-    assert_eq!(expected, collected);
+    assert_eq(&roots, bag);
 }
 
 #[test_matrix([0, 1, N], [1, 2, 4])]
@@ -316,6 +302,142 @@ fn next_with_idx(n: usize, nt: usize) {
         }
     });
 
+    assert_eq_with_idx(&roots, bag);
+}
+
+#[test_matrix([0, 1, N], [1, 2, 4])]
+fn item_puller(n: usize, nt: usize) {
+    let roots = Roots::new(n, N_NODE, 3234);
+    let vec = FixedVec::new(roots.num_nodes() + 10);
+    let queue = ConcurrentQueue::from(vec);
+    queue.extend(roots.as_slice());
+    let iter = DynamicConcurrentIter::new(queue, extend);
+
+    let bag = ConcurrentBag::new();
+    let num_spawned = ConcurrentBag::new();
+    std::thread::scope(|s| {
+        for _ in 0..nt {
+            s.spawn(|| {
+                num_spawned.push(true);
+                while num_spawned.len() < nt {} // allow all threads to be spawned
+
+                for x in iter.item_puller() {
+                    _ = iter.size_hint();
+                    bag.push(x);
+                }
+            });
+        }
+    });
+
+    assert_eq(&roots, bag);
+}
+
+#[test_matrix([0, 1, N], [1, 2, 4])]
+fn item_puller_with_idx(n: usize, nt: usize) {
+    let roots = Roots::new(n, N_NODE, 3234);
+    let vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
+    let queue = ConcurrentQueue::from(vec);
+    queue.extend(roots.as_slice());
+    let iter = DynamicConcurrentIter::new(queue, extend);
+
+    let bag = ConcurrentBag::new();
+    let num_spawned = ConcurrentBag::new();
+    std::thread::scope(|s| {
+        for _ in 0..nt {
+            s.spawn(|| {
+                num_spawned.push(true);
+                while num_spawned.len() < nt {} // allow all threads to be spawned
+
+                for x in iter.item_puller_with_idx() {
+                    _ = iter.size_hint();
+                    bag.push(x);
+                }
+            });
+        }
+    });
+
+    assert_eq_with_idx(&roots, bag);
+}
+
+#[test_matrix([0, 1, N], [1, 2, 4])]
+fn chunk_puller(n: usize, nt: usize) {
+    let roots = Roots::new(n, N_NODE, 3234);
+    let vec = FixedVec::new(roots.num_nodes() + 10);
+    let queue = ConcurrentQueue::from(vec);
+    queue.extend(roots.as_slice());
+    let iter = DynamicConcurrentIter::new(queue, extend);
+
+    let bag = ConcurrentBag::new();
+    let num_spawned = ConcurrentBag::new();
+    std::thread::scope(|s| {
+        for _ in 0..nt {
+            s.spawn(|| {
+                num_spawned.push(true);
+                while num_spawned.len() < nt {} // allow all threads to be spawned
+
+                let mut puller = iter.chunk_puller(7);
+
+                while let Some(chunk) = puller.pull() {
+                    assert!(chunk.len() <= 7);
+                    for x in chunk {
+                        bag.push(x);
+                    }
+                }
+            });
+        }
+    });
+
+    assert_eq(&roots, bag);
+}
+
+#[test_matrix([0, 1, N], [1, 2, 4])]
+fn chunk_puller_with_idx(n: usize, nt: usize) {
+    let roots = Roots::new(n, N_NODE, 3234);
+    let vec = FixedVec::new(roots.num_nodes() + 10);
+    let queue = ConcurrentQueue::from(vec);
+    queue.extend(roots.as_slice());
+    let iter = DynamicConcurrentIter::new(queue, extend);
+
+    let bag = ConcurrentBag::new();
+    let num_spawned = ConcurrentBag::new();
+    std::thread::scope(|s| {
+        for _ in 0..nt {
+            s.spawn(|| {
+                num_spawned.push(true);
+                while num_spawned.len() < nt {} // allow all threads to be spawned
+
+                let mut puller = iter.chunk_puller(7);
+
+                while let Some((begin_idx, chunk)) = puller.pull_with_idx() {
+                    assert!(chunk.len() <= 7);
+                    for (i, x) in chunk.enumerate() {
+                        bag.push((begin_idx + i, x));
+                    }
+                }
+            });
+        }
+    });
+
+    assert_eq_with_idx(&roots, bag);
+}
+
+fn assert_eq(roots: &Roots, bag: ConcurrentBag<&Node>) {
+    let mut expected = Vec::new();
+    expected.extend(roots.as_slice());
+    let mut i = 0;
+    while let Some(node) = expected.get(i) {
+        expected.extend(node.children.iter());
+        i += 1;
+    }
+    expected.sort();
+
+    let mut collected = bag.into_inner().to_vec();
+    collected.sort();
+
+    assert_eq!(expected, collected);
+}
+
+fn assert_eq_with_idx(roots: &Roots, bag: ConcurrentBag<(usize, &Node)>) {
     let mut expected = Vec::new();
     expected.extend(roots.as_slice().iter().enumerate());
     let mut i = 0;
@@ -325,7 +447,8 @@ fn next_with_idx(n: usize, nt: usize) {
         i += 1;
     }
 
-    let collected = bag.into_inner().to_vec();
+    let mut collected = bag.into_inner().to_vec();
+    collected.sort();
 
     let mut idx1: Vec<_> = collected.iter().map(|x| x.0).collect();
     let idx2: Vec<_> = (0..collected.len()).collect();
