@@ -49,18 +49,6 @@ fn new_vec_linear(n: usize, _capacity: usize) -> SplitVec<String, Linear> {
     vec
 }
 
-fn nodes_vec_fixed<'a>(capacity: usize) -> FixedVec<&'a Node> {
-    FixedVec::new(capacity + 10)
-}
-
-fn nodes_vec_doubling<'a>() -> SplitVec<&'a Node, Doubling> {
-    SplitVec::with_doubling_growth_and_max_concurrent_capacity()
-}
-
-fn nodes_vec_linear<'a>() -> SplitVec<&'a Node, Linear> {
-    SplitVec::with_linear_growth_and_fragments_capacity(10, 1024)
-}
-
 #[test_matrix([new_vec_fixed, new_vec_doubling, new_vec_linear])]
 fn basic_iter<P>(vec: impl Fn(usize, usize) -> P)
 where
@@ -403,7 +391,7 @@ fn item_puller_with_idx(n: usize, nt: usize) {
 #[test_matrix([0, 1, N], [1, 2, 4])]
 fn chunk_puller(n: usize, nt: usize) {
     let roots = Roots::new(n, N_NODE, 3234);
-    let vec = FixedVec::new(roots.num_nodes() + 10);
+    let vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
     let iter = DynamicConcurrentIter::new(queue, extend);
@@ -434,7 +422,7 @@ fn chunk_puller(n: usize, nt: usize) {
 #[test_matrix([0, 1, N], [1, 2, 4])]
 fn chunk_puller_with_idx(n: usize, nt: usize) {
     let roots = Roots::new(n, N_NODE, 3234);
-    let vec = FixedVec::new(roots.num_nodes() + 10);
+    let vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
     let iter = DynamicConcurrentIter::new(queue, extend);
@@ -491,7 +479,7 @@ fn flattened_chunk_puller(n: usize, nt: usize) {
 #[test_matrix([0, 1, N], [1, 2, 4])]
 fn flattened_chunk_puller_with_idx(n: usize, nt: usize) {
     let roots = Roots::new(n, N_NODE, 3234);
-    let vec = FixedVec::new(roots.num_nodes() + 10);
+    let vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
     let iter = DynamicConcurrentIter::new(queue, extend);
@@ -517,7 +505,7 @@ fn flattened_chunk_puller_with_idx(n: usize, nt: usize) {
 #[test_matrix([0, 1, N], [1, 2, 4])]
 fn skip_to_end(n: usize, nt: usize) {
     let roots = Roots::new(n, N_NODE, 3234);
-    let vec = FixedVec::new(roots.num_nodes() + 10);
+    let vec = SplitVec::with_linear_growth_and_fragments_capacity(10, 128);
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
     let iter = DynamicConcurrentIter::new(queue, extend);
@@ -580,7 +568,7 @@ fn skip_to_end(n: usize, nt: usize) {
 #[test_matrix([0, 1, N], [1, 2, 4], [0, N / 2, N])]
 fn into_seq_iter(n: usize, nt: usize, until: usize) {
     let roots = Roots::new(n, N_NODE, 3234);
-    let vec = FixedVec::new(roots.num_nodes() + 10);
+    let vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
     let iter = DynamicConcurrentIter::new(queue, extend);
