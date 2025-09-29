@@ -1,6 +1,6 @@
 use crate::{
     ConcurrentQueue,
-    common_traits::dyn_con_iter::{chunk_puller::DynChunkPuller, seq_queue::DynSeqQueue},
+    common_traits::con_iter::{chunk_puller::DynChunkPuller, seq_queue::DynSeqQueue},
     queue::DefaultConVec,
 };
 use core::sync::atomic::Ordering;

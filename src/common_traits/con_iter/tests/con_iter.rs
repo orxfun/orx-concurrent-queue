@@ -1,6 +1,6 @@
 use crate::{
     ConcurrentQueue,
-    common_traits::dyn_con_iter::{
+    common_traits::con_iter::{
         dyn_con_iter::DynamicConcurrentIter,
         tests::node::{Node, Roots},
     },
