@@ -255,7 +255,7 @@ where
 
         let a = self.popped.load(Ordering::Relaxed);
         let b = self.written.load(Ordering::Relaxed);
-        let len = b - a;
+        let len = b.saturating_sub(a);
         if a > 0 {
             let src = unsafe { vec.ptr_iter_unchecked(a..b) };
             let dst = unsafe { vec.ptr_iter_unchecked(0..len) };
