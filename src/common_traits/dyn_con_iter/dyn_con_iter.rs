@@ -78,7 +78,10 @@ where
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         let min = self.queue.len();
-        (min, None)
+        match min {
+            0 => (0, Some(0)),
+            n => (n, None),
+        }
     }
 
     fn chunk_puller(&self, chunk_size: usize) -> Self::ChunkPuller<'_> {
