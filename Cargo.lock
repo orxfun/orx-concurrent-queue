@@ -198,6 +198,8 @@ dependencies = [
 [[package]]
 name = "orx-concurrent-iter"
 version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31485aa02a0ad52d390951a44f3212bfb9dbf06f6e2c8b4265dc2966d5faf85c"
 dependencies = [
  "orx-iterable",
  "orx-pseudo-default",
@@ -206,8 +208,7 @@ dependencies = [
 [[package]]
 name = "orx-concurrent-iter"
 version = "3.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31485aa02a0ad52d390951a44f3212bfb9dbf06f6e2c8b4265dc2966d5faf85c"
+source = "git+https://github.com/orxfun/orx-concurrent-iter/?branch=dynamic-concurrent-iterator#8c187a77bbc0f474830bad785ac7ab1c5747877f"
 dependencies = [
  "orx-iterable",
  "orx-pseudo-default",
@@ -219,7 +220,7 @@ version = "1.0.0"
 dependencies = [
  "criterion",
  "orx-concurrent-bag",
- "orx-concurrent-iter 3.1.0",
+ "orx-concurrent-iter 3.1.0 (git+https://github.com/orxfun/orx-concurrent-iter/?branch=dynamic-concurrent-iterator)",
  "orx-fixed-vec 3.20.0 (git+https://github.com/orxfun/orx-fixed-vec/?branch=into-iter-for-concurrent-pinned-vec)",
  "orx-pinned-vec 3.18.0 (git+https://github.com/orxfun/orx-pinned-vec/?branch=into-iter-for-concurrent-pinned-vectors)",
  "orx-split-vec 3.21.0",
@@ -335,9 +336,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.40"
+version = "1.0.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
+checksum = "ce25767e7b499d1b604768e7cde645d14cc8584231ea6b295e9c9eb22c02e1d1"
 dependencies = [
  "proc-macro2",
 ]

@@ -13,10 +13,11 @@ categories = ["data-structures", "concurrency", "rust-patterns", "no-std"]
 # orx-pinned-vec = { version = "3.18.0", default-features = false }
 # orx-split-vec = { version = "3.20.0", default-features = false }
 # orx-fixed-vec = { version = "3.20.0", default-features = false }
+# orx-concurrent-iter = { path = "../orx-concurrent-iter", optional = true }
 orx-pinned-vec = { git = "https://github.com/orxfun/orx-pinned-vec/", branch = "into-iter-for-concurrent-pinned-vectors" }
 orx-split-vec = { git = "https://github.com/orxfun/orx-split-vec/", branch = "into-iter-for-concurrent-pinned-vec" }
 orx-fixed-vec = { git = "https://github.com/orxfun/orx-fixed-vec/", branch = "into-iter-for-concurrent-pinned-vec" }
-orx-concurrent-iter = { path = "../orx-concurrent-iter", optional = true }
+orx-concurrent-iter = { git = "https://github.com/orxfun/orx-concurrent-iter/", branch = "dynamic-concurrent-iterator", optional = true }
 
 [dev-dependencies]
 criterion = { version = "0.7.0", default-features = false }

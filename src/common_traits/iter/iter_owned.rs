@@ -8,6 +8,18 @@ where
     iter: P::PtrIter<'a>,
 }
 
+impl<'a, T, P> Default for QueueIterOwned<'a, T, P>
+where
+    T: Send + 'a,
+    P: ConcurrentPinnedVec<T> + 'a,
+{
+    fn default() -> Self {
+        Self {
+            iter: Default::default(),
+        }
+    }
+}
+
 impl<'a, T, P> QueueIterOwned<'a, T, P>
 where
     T: Send + 'a,

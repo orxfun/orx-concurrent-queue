@@ -5,7 +5,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use orx_concurrent_iter::ConcurrentIter;
+use orx_concurrent_iter::{ChunkPuller, ConcurrentIter};
 use orx_fixed_vec::FixedVec;
 use orx_pinned_vec::IntoConcurrentPinnedVec;
 use orx_split_vec::{Doubling, Linear, SplitVec};
@@ -188,4 +188,34 @@ where
     assert_eq!(iter.size_hint(), (0, Some(0)));
 
     assert_eq!(iter.next(), None);
+}
+
+#[test_matrix([new_vec_fixed, new_vec_doubling, new_vec_linear], [1, 2, 4])]
+fn empty<P>(vec: impl Fn(usize, usize) -> P, nt: usize)
+where
+    P: IntoConcurrentPinnedVec<String>,
+{
+    let queue = ConcurrentQueue::from(vec(0, 20));
+    let extend = |s: &String| {
+        let i: usize = s.parse().unwrap();
+        (0..i).map(|x| x.to_string())
+    };
+    let iter = DynamicConcurrentIter::new(queue, extend);
+
+    std::thread::scope(|s| {
+        for _ in 0..nt {
+            s.spawn(|| {
+                assert!(iter.next().is_none());
+                assert!(iter.next().is_none());
+
+                let mut puller = iter.chunk_puller(5);
+                assert!(puller.pull().is_none());
+                assert!(puller.pull().is_none());
+
+                let mut iter = iter.chunk_puller(5).flattened();
+                assert!(iter.next().is_none());
+                assert!(iter.next().is_none());
+            });
+        }
+    });
 }
