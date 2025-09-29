@@ -99,3 +99,93 @@ where
     assert_eq!(iter.next_with_idx(), None);
     assert_eq!(iter.next_with_idx(), None);
 }
+
+#[test_matrix([new_vec_fixed, new_vec_doubling, new_vec_linear])]
+fn size_hint<P>(vec: impl Fn(usize, usize) -> P)
+where
+    P: IntoConcurrentPinnedVec<String>,
+{
+    // 1 2 3 0 0 1 0 1 2 0 0 0 1 0
+    let queue = ConcurrentQueue::from(vec(3, 20));
+    let extend = |s: &String| {
+        let i: usize = s.parse().unwrap();
+        (0..i).map(|x| x.to_string())
+    };
+    let iter = DynamicConcurrentIter::new(queue, extend);
+
+    // 1 2 3
+    assert_eq!(iter.size_hint(), (3, None));
+
+    _ = iter.next(); // 2 3 0
+    assert_eq!(iter.size_hint(), (3, None));
+
+    _ = iter.next(); // 3 0 0 1
+    assert_eq!(iter.size_hint(), (4, None));
+
+    _ = iter.next(); // 0 0 1 0 1 2
+    assert_eq!(iter.size_hint(), (6, None));
+
+    _ = iter.next(); // 0 1 0 1 2
+    assert_eq!(iter.size_hint(), (5, None));
+
+    _ = iter.next(); // 1 0 1 2
+    assert_eq!(iter.size_hint(), (4, None));
+
+    _ = iter.next(); // 0 1 2 0
+    assert_eq!(iter.size_hint(), (4, None));
+
+    _ = iter.next(); // 1 2 0
+    assert_eq!(iter.size_hint(), (3, None));
+
+    _ = iter.next(); // 2 0 0
+    assert_eq!(iter.size_hint(), (3, None));
+
+    _ = iter.next(); // 0 0 0 1
+    assert_eq!(iter.size_hint(), (4, None));
+
+    _ = iter.next(); // 0 0 1
+    assert_eq!(iter.size_hint(), (3, None));
+
+    _ = iter.next(); // 0 1
+    assert_eq!(iter.size_hint(), (2, None));
+
+    _ = iter.next(); // 1
+    assert_eq!(iter.size_hint(), (1, None));
+
+    _ = iter.next(); // 0
+    assert_eq!(iter.size_hint(), (1, None));
+
+    _ = iter.next(); // []
+    assert_eq!(iter.size_hint(), (0, Some(0)));
+}
+
+#[test_matrix([new_vec_fixed, new_vec_doubling, new_vec_linear])]
+fn size_hint_skip_to_end<P>(vec: impl Fn(usize, usize) -> P)
+where
+    P: IntoConcurrentPinnedVec<String>,
+{
+    // 1 2 3 0 0 1 0 1 2 0 0 0 1 0
+    let queue = ConcurrentQueue::from(vec(3, 20));
+    let extend = |s: &String| {
+        let i: usize = s.parse().unwrap();
+        (0..i).map(|x| x.to_string())
+    };
+    let iter = DynamicConcurrentIter::new(queue, extend);
+
+    // 1 2 3
+    assert_eq!(iter.size_hint(), (3, None));
+
+    _ = iter.next(); // 2 3 0
+    assert_eq!(iter.size_hint(), (3, None));
+
+    _ = iter.next(); // 3 0 0 1
+    assert_eq!(iter.size_hint(), (4, None));
+
+    _ = iter.next(); // 0 0 1 0 1 2
+    assert_eq!(iter.size_hint(), (6, None));
+
+    iter.skip_to_end();
+    assert_eq!(iter.size_hint(), (0, Some(0)));
+
+    assert_eq!(iter.next(), None);
+}
