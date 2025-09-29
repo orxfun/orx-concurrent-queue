@@ -251,6 +251,47 @@ fn extend<'a, 'b>(node: &'a &'b Node) -> &'b [Node] {
     &node.children
 }
 
+fn assert_eq(roots: &Roots, bag: ConcurrentBag<&Node>) {
+    let mut expected = Vec::new();
+    expected.extend(roots.as_slice());
+    let mut i = 0;
+    while let Some(node) = expected.get(i) {
+        expected.extend(node.children.iter());
+        i += 1;
+    }
+    expected.sort();
+
+    let mut collected = bag.into_inner().to_vec();
+    collected.sort();
+
+    assert_eq!(expected, collected);
+}
+
+fn assert_eq_with_idx(roots: &Roots, bag: ConcurrentBag<(usize, &Node)>) {
+    let mut expected = Vec::new();
+    expected.extend(roots.as_slice().iter().enumerate());
+    let mut i = 0;
+    while let Some((_, node)) = expected.get(i) {
+        let len = expected.len();
+        expected.extend(node.children.iter().enumerate().map(|(i, x)| (len + i, x)));
+        i += 1;
+    }
+
+    let mut collected = bag.into_inner().to_vec();
+    collected.sort();
+
+    let mut idx1: Vec<_> = collected.iter().map(|x| x.0).collect();
+    let idx2: Vec<_> = (0..collected.len()).collect();
+    idx1.sort();
+    assert_eq!(idx1, idx2);
+
+    let mut nodes1: Vec<_> = collected.iter().map(|x| x.1).collect();
+    let mut nodes2: Vec<_> = expected.iter().map(|x| x.1).collect();
+    nodes1.sort();
+    nodes2.sort();
+    assert_eq!(nodes1, nodes2);
+}
+
 #[test_matrix([0, 1, N_ROOT], [1, 2, 4])]
 fn next(n: usize, nt: usize) {
     let roots = Roots::new(n, N_NODE, 424242);
@@ -421,43 +462,54 @@ fn chunk_puller_with_idx(n: usize, nt: usize) {
     assert_eq_with_idx(&roots, bag);
 }
 
-fn assert_eq(roots: &Roots, bag: ConcurrentBag<&Node>) {
-    let mut expected = Vec::new();
-    expected.extend(roots.as_slice());
-    let mut i = 0;
-    while let Some(node) = expected.get(i) {
-        expected.extend(node.children.iter());
-        i += 1;
-    }
-    expected.sort();
+#[test_matrix([0, 1, N], [1, 2, 4])]
+fn flattened_chunk_puller(n: usize, nt: usize) {
+    let roots = Roots::new(n, N_NODE, 3234);
+    let vec = FixedVec::new(roots.num_nodes() + 10);
+    let queue = ConcurrentQueue::from(vec);
+    queue.extend(roots.as_slice());
+    let iter = DynamicConcurrentIter::new(queue, extend);
 
-    let mut collected = bag.into_inner().to_vec();
-    collected.sort();
+    let bag = ConcurrentBag::new();
+    let num_spawned = ConcurrentBag::new();
+    std::thread::scope(|s| {
+        for _ in 0..nt {
+            s.spawn(|| {
+                num_spawned.push(true);
+                while num_spawned.len() < nt {} // allow all threads to be spawned
 
-    assert_eq!(expected, collected);
+                for x in iter.chunk_puller(7).flattened() {
+                    bag.push(x);
+                }
+            });
+        }
+    });
+
+    assert_eq(&roots, bag);
 }
 
-fn assert_eq_with_idx(roots: &Roots, bag: ConcurrentBag<(usize, &Node)>) {
-    let mut expected = Vec::new();
-    expected.extend(roots.as_slice().iter().enumerate());
-    let mut i = 0;
-    while let Some((_, node)) = expected.get(i) {
-        let len = expected.len();
-        expected.extend(node.children.iter().enumerate().map(|(i, x)| (len + i, x)));
-        i += 1;
-    }
+#[test_matrix([0, 1, N], [1, 2, 4])]
+fn flattened_chunk_puller_with_idx(n: usize, nt: usize) {
+    let roots = Roots::new(n, N_NODE, 3234);
+    let vec = FixedVec::new(roots.num_nodes() + 10);
+    let queue = ConcurrentQueue::from(vec);
+    queue.extend(roots.as_slice());
+    let iter = DynamicConcurrentIter::new(queue, extend);
 
-    let mut collected = bag.into_inner().to_vec();
-    collected.sort();
+    let bag = ConcurrentBag::new();
+    let num_spawned = ConcurrentBag::new();
+    std::thread::scope(|s| {
+        for _ in 0..nt {
+            s.spawn(|| {
+                num_spawned.push(true);
+                while num_spawned.len() < nt {} // allow all threads to be spawned
 
-    let mut idx1: Vec<_> = collected.iter().map(|x| x.0).collect();
-    let idx2: Vec<_> = (0..collected.len()).collect();
-    idx1.sort();
-    assert_eq!(idx1, idx2);
+                for x in iter.chunk_puller(7).flattened_with_idx() {
+                    bag.push(x);
+                }
+            });
+        }
+    });
 
-    let mut nodes1: Vec<_> = collected.iter().map(|x| x.1).collect();
-    let mut nodes2: Vec<_> = expected.iter().map(|x| x.1).collect();
-    nodes1.sort();
-    nodes2.sort();
-    assert_eq!(nodes1, nodes2);
+    assert_eq_with_idx(&roots, bag);
 }
