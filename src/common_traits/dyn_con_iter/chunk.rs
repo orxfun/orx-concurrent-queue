@@ -1,6 +1,5 @@
 use crate::{ConcurrentQueue, common_traits::iter::QueueIterOwned};
 use orx_pinned_vec::ConcurrentPinnedVec;
-use orx_split_vec::PseudoDefault;
 
 pub struct DynChunk<'a, T, E, I, P>
 where

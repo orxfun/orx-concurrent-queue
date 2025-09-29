@@ -16,7 +16,7 @@ where
     P: ConcurrentPinnedVec<T>,
     <P as ConcurrentPinnedVec<T>>::P: IntoConcurrentPinnedVec<T, ConPinnedVec = P>,
 {
-    pub queue: ConcurrentQueue<T, P>,
+    queue: ConcurrentQueue<T, P>,
     extend: E,
 }
 
