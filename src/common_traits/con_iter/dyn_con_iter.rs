@@ -7,6 +7,7 @@ use core::sync::atomic::Ordering;
 use orx_concurrent_iter::ConcurrentIter;
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
 
+/// TODO: PLACEHOLDER
 pub struct DynamicConcurrentIter<T, E, I, P = DefaultConVec<T>>
 where
     T: Send,
@@ -29,6 +30,7 @@ where
     P: ConcurrentPinnedVec<T>,
     <P as ConcurrentPinnedVec<T>>::P: IntoConcurrentPinnedVec<T, ConPinnedVec = P>,
 {
+    /// TODO: PLACEHOLDER
     pub fn new(queue: ConcurrentQueue<T, P>, extend: E) -> Self {
         Self { queue, extend }
     }
