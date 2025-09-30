@@ -1,3 +1,5 @@
+// cargo run --example queue_basic_usage
+
 use orx_concurrent_bag::*;
 use orx_concurrent_queue::*;
 use orx_split_vec::Collection;
@@ -47,7 +49,7 @@ fn main() {
     let collected_vec = collected.into_inner();
     assert!(collected_vec.iter().all(|x| x != "42"));
     println!(
-        "Collected {} items before hitting 42:)",
+        "Collected {} random numbers within 0..100 before hitting 42:)",
         collected_vec.len()
     );
 }
