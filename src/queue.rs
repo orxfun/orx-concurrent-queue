@@ -683,7 +683,19 @@ where
         unsafe { self.vec.ptr_iter_unchecked(range) }
     }
 
-    pub(super) fn destruct(mut self) -> (P, usize, usize)
+    /// Destructs the concurrent queue into its inner pieces:
+    /// * underlying concurrent pinned vector,
+    /// * number of written elements, and
+    /// * number of popped elements.
+    ///
+    /// # Safety
+    ///
+    /// Note that the destruction operation of the queue is safe.
+    /// However, it disconnects the concurrent pinned vector from the information
+    /// of which elements are taken out and which are still to be dropped.
+    /// Therefore, the caller is responsible to drop all elements within the range
+    /// `popped..written`.
+    pub unsafe fn destruct(mut self) -> (P, usize, usize)
     where
         <P as ConcurrentPinnedVec<T>>::P: IntoConcurrentPinnedVec<T, ConPinnedVec = P>,
     {

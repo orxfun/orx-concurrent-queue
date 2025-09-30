@@ -211,7 +211,9 @@ where
         Self: 'i;
 
     fn into_seq_iter(self) -> Self::SequentialIter {
-        let (vec, written, popped) = self.queue.destruct();
+        // SAFETY: we destruct the queue and immediately convert it into a sequential
+        // queue together with `popped..written` valid range information.
+        let (vec, written, popped) = unsafe { self.queue.destruct() };
         DynSeqQueue::new(vec, written, popped, self.extend)
     }
 
