@@ -1,5 +1,6 @@
 use orx_pinned_vec::ConcurrentPinnedVec;
 
+/// An iterator over owned elements of the concurrent queue created over a given range.
 pub struct QueueIterOwned<'a, T, P>
 where
     T: Send + 'a,
