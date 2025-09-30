@@ -435,14 +435,14 @@ where
     ///
     /// queue.extend(1..6);
     /// assert_eq!(
-    ///     queue.pull_with_idx(2).map(|x| x.collect::<Vec<_>>()),
+    ///     queue.pull_with_idx(2).map(|(i, x)| x.enumerate().map(|(j, x)| (i + j, x)).collect::<Vec<_>>()),
     ///     Some(vec![(0, 1), (1, 2)])
     /// );
     /// assert_eq!(
-    ///     queue.pull_with_idx(7).map(|x| x.collect::<Vec<_>>()),
+    ///     queue.pull_with_idx(7).map(|(i, x)| x.enumerate().map(|(j, x)| (i + j, x)).collect::<Vec<_>>()),
     ///     Some(vec![(2, 3), (3, 4), (4, 5)])
     /// );
-    /// assert_eq!(queue.pull_with_idx(1).map(|x| x.collect::<Vec<_>>()), None);
+    /// assert_eq!(queue.pull_with_idx(1).map(|(i, x)| x.enumerate().map(|(j, x)| (i + j, x)).collect::<Vec<_>>()), None);
     /// ```
     pub fn pull_with_idx(&self, chunk_size: usize) -> Option<(usize, QueueIterOwned<'_, T, P>)> {
         match chunk_size > 0 {
