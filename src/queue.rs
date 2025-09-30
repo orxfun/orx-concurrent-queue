@@ -12,6 +12,8 @@ use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
 use orx_split_vec::{Doubling, SplitVec, prelude::PseudoDefault};
 
 type DefaultPinnedVec<T> = SplitVec<T, Doubling>;
+
+/// Default concurrent pinned vector used as the underlying storage of the concurrent queue.
 pub type DefaultConPinnedVec<T> = <DefaultPinnedVec<T> as IntoConcurrentPinnedVec<T>>::ConPinnedVec;
 
 impl<T> Default for ConcurrentQueue<T, DefaultConPinnedVec<T>>
