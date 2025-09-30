@@ -379,7 +379,23 @@ where
 
     // shrink with idx
 
-    pub(super) fn pop_with_idx(&self) -> Option<(usize, T)> {
+    /// Pops and returns the element in the front of the queue together with its index;
+    /// returns None if the queue is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::*;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// queue.extend(1..4);
+    /// assert_eq!(queue.pop_with_idx(), Some((0, 1)));
+    /// assert_eq!(queue.pop_with_idx(), Some((1, 2)));
+    /// assert_eq!(queue.pop_with_idx(), Some((2, 3)));
+    /// assert_eq!(queue.pop_with_idx(), None);
+    /// ```
+    pub fn pop_with_idx(&self) -> Option<(usize, T)> {
         let idx = self.popped.fetch_add(1, Ordering::Relaxed);
 
         loop {
@@ -395,10 +411,40 @@ where
         }
     }
 
-    pub(super) fn pull_with_idx(
-        &self,
-        chunk_size: usize,
-    ) -> Option<(usize, QueueIterOwned<'_, T, P>)> {
+    /// Pulls `chunk_size` elements from the front of the queue together with the index of the first pulled element:
+    ///
+    /// * returns None if `chunk_size` is zero,
+    /// * returns Some of an ExactSizeIterator with `len = chunk_size` if the queue has at least `chunk_size` items,
+    /// * returns Some of a non-empty ExactSizeIterator with `len` such that `0 < len < chunk_size` if the queue
+    ///   has `len` elements,
+    /// * returns None if the queue is empty.
+    ///
+    /// Therefore, if the method returns a Some variant, the exact size iterator is not empty.
+    ///
+    /// Pulled elements are guaranteed to be consecutive elements in the queue. Therefore, knowing the index of the first pulled element,
+    /// indices of all pulled elements can be known.
+    ///
+    /// In order to reduce the number of concurrent state updates, `pull` with a large enough chunk size might be preferred over `pop` whenever possible.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::*;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// queue.extend(1..6);
+    /// assert_eq!(
+    ///     queue.pull_with_idx(2).map(|x| x.collect::<Vec<_>>()),
+    ///     Some(vec![(0, 1), (1, 2)])
+    /// );
+    /// assert_eq!(
+    ///     queue.pull_with_idx(7).map(|x| x.collect::<Vec<_>>()),
+    ///     Some(vec![(2, 3), (3, 4), (4, 5)])
+    /// );
+    /// assert_eq!(queue.pull_with_idx(1).map(|x| x.collect::<Vec<_>>()), None);
+    /// ```
+    pub fn pull_with_idx(&self, chunk_size: usize) -> Option<(usize, QueueIterOwned<'_, T, P>)> {
         match chunk_size > 0 {
             true => {
                 let begin_idx = self.popped.fetch_add(chunk_size, Ordering::Relaxed);
