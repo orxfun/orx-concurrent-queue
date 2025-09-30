@@ -143,6 +143,21 @@ where
     ///
     /// # Examples
     ///
+    /// The following is a simple example to demonstrate how the dynamic iterator works.
+    ///
+    /// ```
+    /// use orx_concurrent_queue::DynamicConcurrentIter;
+    /// use orx_concurrent_iter::ConcurrentIter;
+    ///
+    /// let extend = |x: &usize| (*x < 5).then_some(x + 1);
+    /// let initial_elements = [1];
+    ///
+    /// let iter = DynamicConcurrentIter::new(extend, initial_elements);
+    /// let all: Vec<_> = iter.item_puller().collect();
+    ///
+    /// assert_eq!(all, [1, 2, 3, 4, 5]);
+    /// ```
+    ///
     /// ```
     /// use orx_concurrent_queue::*;
     /// use orx_concurrent_iter::ConcurrentIter;
@@ -155,6 +170,20 @@ where
     ///
     /// assert_eq!(all, [1, 2, 3, 4, 5]);
     /// ```
+    ///
+    /// # Examples - From
+    ///
+    /// In the above example, the underlying pinned vector of the dynamic iterator created
+    /// with `new` is a [`SplitVec`] with a [`Doubling`] growth strategy.
+    ///
+    /// Alternatively, we can use a `SplitVec` with a [`Linear`] growth strategy, or a
+    /// pre-allocated [`FixedVec`] as the underlying storage. In order to do so, we can
+    /// use the `From` trait.
+    ///
+    /// [`SplitVec`]: orx_split_vec::SplitVec
+    /// [`FixedVec`]: orx_fixed_vec::FixedVec
+    /// [`Doubling`]: orx_split_vec::Doubling
+    /// [`Linear`]: orx_split_vec::Linear
     pub fn new(extend: E, initial_elements: impl IntoIterator<Item = T>) -> Self {
         let mut vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
         vec.extend(initial_elements);
@@ -215,25 +244,5 @@ where
 
     fn chunk_puller(&self, chunk_size: usize) -> Self::ChunkPuller<'_> {
         DynChunkPuller::new(&self.extend, &self.queue, chunk_size)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use alloc::vec;
-    use alloc::vec::Vec;
-
-    use crate::*;
-    use orx_concurrent_iter::ConcurrentIter;
-
-    #[test]
-    fn abc() {
-        let extend = |x: &usize| (*x < 5).then_some(x + 1);
-        let initial_elements = [1];
-
-        let iter = DynamicConcurrentIter::new(extend, initial_elements);
-        let all: Vec<_> = iter.item_puller().collect();
-
-        assert_eq!(all, [1, 2, 3, 4, 5]);
     }
 }
