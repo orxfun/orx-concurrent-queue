@@ -32,7 +32,7 @@ use orx_split_vec::SplitVec;
 /// Including the root, there exist 177 nodes in the tree. We observe that all these
 /// nodes are concurrently added to the iterator, popped and processed.
 ///
-/// ```rust
+/// ```
 /// use orx_concurrent_queue::DynamicConcurrentIter;
 /// use orx_concurrent_iter::ConcurrentIter;
 /// use std::sync::atomic::{AtomicUsize, Ordering};
@@ -131,7 +131,30 @@ where
     I: IntoIterator<Item = T>,
     I::IntoIter: ExactSizeIterator,
 {
-    /// TODO: PLACEHOLDER
+    /// Creates a new dynamic concurrent iterator:
+    ///
+    /// * The iterator will initially contain `initial_elements`.
+    /// * Before yielding each element, say `e`, to the caller, the elements returned
+    ///   by `extend(&e)` will be added to the concurrent iterator, to be yield later.
+    ///
+    /// This constructor uses a [`ConcurrentQueue`] with the default pinned concurrent
+    /// collection under the hood. In order to crate the iterator using a different queue
+    /// use the `From`/`Into` traits, as demonstrated below.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::*;
+    /// use orx_concurrent_iter::ConcurrentIter;
+    ///
+    /// let extend = |x: &usize| (*x < 5).then_some(x + 1);
+    /// let initial_elements = [1];
+    ///
+    /// let iter = DynamicConcurrentIter::new(extend, initial_elements);
+    /// let all: Vec<_> = iter.item_puller().collect();
+    ///
+    /// assert_eq!(all, [1, 2, 3, 4, 5]);
+    /// ```
     pub fn new(extend: E, initial_elements: impl IntoIterator<Item = T>) -> Self {
         let mut vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
         vec.extend(initial_elements);
@@ -192,5 +215,25 @@ where
 
     fn chunk_puller(&self, chunk_size: usize) -> Self::ChunkPuller<'_> {
         DynChunkPuller::new(&self.extend, &self.queue, chunk_size)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::vec;
+    use alloc::vec::Vec;
+
+    use crate::*;
+    use orx_concurrent_iter::ConcurrentIter;
+
+    #[test]
+    fn abc() {
+        let extend = |x: &usize| (*x < 5).then_some(x + 1);
+        let initial_elements = [1];
+
+        let iter = DynamicConcurrentIter::new(extend, initial_elements);
+        let all: Vec<_> = iter.item_puller().collect();
+
+        assert_eq!(all, [1, 2, 3, 4, 5]);
     }
 }
