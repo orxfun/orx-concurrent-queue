@@ -561,6 +561,11 @@ where
             .saturating_sub(self.popped.load(Ordering::Relaxed))
     }
 
+    /// Returns the total number of positions reserved to be written.
+    pub fn num_write_reserved(&self, order: Ordering) -> usize {
+        self.write_reserved.load(order)
+    }
+
     /// Returns true if the queue is empty, false otherwise.
     ///
     /// # Examples
@@ -714,9 +719,5 @@ where
         self.written.store(0, Ordering::Relaxed);
 
         (vec, written, popped)
-    }
-
-    pub(super) fn write_reserved(&self, order: Ordering) -> usize {
-        self.write_reserved.load(order)
     }
 }

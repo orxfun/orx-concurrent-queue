@@ -218,7 +218,7 @@ where
     }
 
     fn skip_to_end(&self) {
-        let len = self.queue.write_reserved(Ordering::Acquire);
+        let len = self.queue.num_write_reserved(Ordering::Acquire);
         let _remaining_to_drop = self.queue.pull(len);
     }
 
