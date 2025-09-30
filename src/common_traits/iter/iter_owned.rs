@@ -13,6 +13,7 @@ impl<'a, T, P> Default for QueueIterOwned<'a, T, P>
 where
     T: Send + 'a,
     P: ConcurrentPinnedVec<T> + 'a,
+    <P as ConcurrentPinnedVec<T>>::PtrIter<'a>: Default,
 {
     fn default() -> Self {
         Self {
