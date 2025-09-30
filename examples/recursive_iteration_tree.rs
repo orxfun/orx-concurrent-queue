@@ -1,5 +1,5 @@
 use orx_concurrent_iter::ConcurrentIter;
-use orx_concurrent_queue::{ConcurrentQueue, DynamicConcurrentIter};
+use orx_concurrent_queue::DynamicConcurrentIter;
 use rand::Rng;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -45,9 +45,7 @@ fn compute_with_rec_iter(root: &Node, num_threads: usize) -> u64 {
     fn extend<'a, 'b>(node: &'a &'b Node) -> &'b [Node] {
         &node.children
     }
-    let queue = ConcurrentQueue::new();
-    queue.push(root);
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::new(extend, [root]);
 
     let num_spawned = AtomicUsize::new(0);
     std::thread::scope(|s| {

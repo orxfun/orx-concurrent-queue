@@ -6,8 +6,20 @@ use crate::{
 use core::sync::atomic::Ordering;
 use orx_concurrent_iter::ConcurrentIter;
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
+use orx_split_vec::SplitVec;
 
-/// TODO: PLACEHOLDER
+/// A dynamic [`ConcurrentIter`] which:
+/// * naturally shrinks as we iterate,
+/// * but can also grow as it allows to add new items to the iterator, during iteration.
+///
+/// The growth part is managed by the `extend: E` function with the signature `Fn(&T) -> I`,
+/// where `I: IntoIterator<Item = T>`.
+///
+/// In other words, for each element `e` drawn from the iterator, we call `extend(&e)` before
+/// returning it to the caller. All elements included in the iterator that `extend` returned
+/// are added to the end of the concurrent iterator, to be yield later on.
+///
+///
 pub struct DynamicConcurrentIter<T, E, I, P = DefaultConVec<T>>
 where
     T: Send,
@@ -21,7 +33,7 @@ where
     extend: E,
 }
 
-impl<T, E, I, P> DynamicConcurrentIter<T, E, I, P>
+impl<T, E, I, P> From<(E, ConcurrentQueue<T, P>)> for DynamicConcurrentIter<T, E, I, P>
 where
     T: Send,
     E: Fn(&T) -> I + Sync,
@@ -30,8 +42,23 @@ where
     P: ConcurrentPinnedVec<T>,
     <P as ConcurrentPinnedVec<T>>::P: IntoConcurrentPinnedVec<T, ConPinnedVec = P>,
 {
+    fn from((extend, queue): (E, ConcurrentQueue<T, P>)) -> Self {
+        Self { queue, extend }
+    }
+}
+
+impl<T, E, I> DynamicConcurrentIter<T, E, I, DefaultConVec<T>>
+where
+    T: Send,
+    E: Fn(&T) -> I + Sync,
+    I: IntoIterator<Item = T>,
+    I::IntoIter: ExactSizeIterator,
+{
     /// TODO: PLACEHOLDER
-    pub fn new(queue: ConcurrentQueue<T, P>, extend: E) -> Self {
+    pub fn new(extend: E, initial_elements: impl IntoIterator<Item = T>) -> Self {
+        let mut vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
+        vec.extend(initial_elements);
+        let queue = vec.into();
         Self { queue, extend }
     }
 }
@@ -88,5 +115,46 @@ where
 
     fn chunk_puller(&self, chunk_size: usize) -> Self::ChunkPuller<'_> {
         DynChunkPuller::new(&self.extend, &self.queue, chunk_size)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::*;
+    use alloc::vec::Vec;
+    use rand::Rng;
+
+    #[test]
+    fn abc() {
+        struct Node {
+            value: u64,
+            children: Vec<Node>,
+        }
+
+        impl Node {
+            fn new(rng: &mut impl Rng, value: u64) -> Self {
+                let num_children = match value {
+                    0 => 0,
+                    n => rng.random_range(0..(n as usize)),
+                };
+                let children = (0..num_children)
+                    .map(|i| Self::new(rng, i as u64))
+                    .collect();
+                Self { value, children }
+            }
+        }
+
+        fn compute(node_value: u64) {
+            // fake computation
+            std::thread::sleep(std::time::Duration::from_millis(node_value));
+        }
+
+        fn extend<'a, 'b>(node: &'a &'b Node) -> &'b [Node] {
+            &node.children
+        }
+
+        // let queue = ConcurrentQueue::new();
+        // queue.push(root);
+        // let iter = DynamicConcurrentIter::new(queue, extend);
     }
 }

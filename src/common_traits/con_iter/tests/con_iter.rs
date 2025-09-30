@@ -60,7 +60,7 @@ where
         let i: usize = s.parse().unwrap();
         (0..i).map(|x| x.to_string())
     };
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     assert_eq!(iter.next(), Some(1.to_string()));
     assert_eq!(iter.next(), Some(2.to_string()));
@@ -93,7 +93,7 @@ where
         let i: usize = s.parse().unwrap();
         (0..i).map(|x| x.to_string())
     };
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     assert_eq!(iter.next_with_idx(), Some((0, 1.to_string())));
     assert_eq!(iter.next_with_idx(), Some((1, 2.to_string())));
@@ -126,7 +126,7 @@ where
         let i: usize = s.parse().unwrap();
         (0..i).map(|x| x.to_string())
     };
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     // 1 2 3
     assert_eq!(iter.size_hint(), (3, None));
@@ -185,7 +185,7 @@ where
         let i: usize = s.parse().unwrap();
         (0..i).map(|x| x.to_string())
     };
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     // 1 2 3
     assert_eq!(iter.size_hint(), (3, None));
@@ -215,7 +215,7 @@ where
         let i: usize = s.parse().unwrap();
         (0..i).map(|x| x.to_string())
     };
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     std::thread::scope(|s| {
         for _ in 0..nt {
@@ -286,7 +286,7 @@ fn next(n: usize, nt: usize) {
     let vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -313,7 +313,7 @@ fn next_with_idx(n: usize, nt: usize) {
     let vec = SplitVec::with_linear_growth_and_fragments_capacity(10, 64);
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -340,7 +340,7 @@ fn item_puller(n: usize, nt: usize) {
     let vec = FixedVec::new(roots.num_nodes() + 10);
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -367,7 +367,7 @@ fn item_puller_with_idx(n: usize, nt: usize) {
     let vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -394,7 +394,7 @@ fn chunk_puller(n: usize, nt: usize) {
     let vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -425,7 +425,7 @@ fn chunk_puller_with_idx(n: usize, nt: usize) {
     let vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -456,7 +456,7 @@ fn flattened_chunk_puller(n: usize, nt: usize) {
     let vec = FixedVec::new(roots.num_nodes() + 10);
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -482,7 +482,7 @@ fn flattened_chunk_puller_with_idx(n: usize, nt: usize) {
     let vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
@@ -508,7 +508,7 @@ fn skip_to_end(n: usize, nt: usize) {
     let vec = SplitVec::with_linear_growth_and_fragments_capacity(10, 128);
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     let until = n / 2;
 
@@ -571,7 +571,7 @@ fn into_seq_iter(n: usize, nt: usize, until: usize) {
     let vec = SplitVec::with_doubling_growth_and_max_concurrent_capacity();
     let queue = ConcurrentQueue::from(vec);
     queue.extend(roots.as_slice());
-    let iter = DynamicConcurrentIter::new(queue, extend);
+    let iter = DynamicConcurrentIter::from((extend, queue));
 
     let bag = ConcurrentBag::new();
     let num_spawned = ConcurrentBag::new();
