@@ -9,6 +9,7 @@ struct Node {
 }
 
 fn fibonacci(n: u64) -> u64 {
+    let n = n % 42; // let's not overflow
     let mut a = 0;
     let mut b = 1;
     for _ in 0..n {
@@ -60,7 +61,7 @@ fn compute_with_rec_iter(root: &Node, num_threads: usize) -> u64 {
                 // computation: parallel reduction
                 let mut thread_sum = 0;
                 while let Some(node) = iter.next() {
-                    thread_sum += fibonacci(node.value % 42); // let's not overflow
+                    thread_sum += fibonacci(node.value % 42);
                 }
                 thread_sum
             }));
