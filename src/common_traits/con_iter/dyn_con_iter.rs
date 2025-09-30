@@ -19,7 +19,84 @@ use orx_split_vec::SplitVec;
 /// returning it to the caller. All elements included in the iterator that `extend` returned
 /// are added to the end of the concurrent iterator, to be yield later on.
 ///
+/// *The dynamic concurrent iterator internally uses a [`ConcurrentQueue`] which allows for concurrent
+/// push / extend simultaneously with pop / pull operations.*
 ///
+/// # Example
+///
+/// The following example demonstrates a use case for the dynamic concurrent iterator.
+/// Notice that the iterator is instantiated with:
+/// * a single element which is the root node,
+/// * and the extend method which defines how to extend the iterator from each node.
+///
+/// Including the root, there exist 177 nodes in the tree. We observe that all these
+/// nodes are concurrently added to the iterator, popped and processed.
+///
+/// ```rust
+/// use orx_concurrent_queue::DynamicConcurrentIter;
+/// use orx_concurrent_iter::ConcurrentIter;
+/// use std::sync::atomic::{AtomicUsize, Ordering};
+/// use rand::{Rng, SeedableRng};
+/// use rand_chacha::ChaCha8Rng;
+///
+/// struct Node {
+///     value: u64,
+///     children: Vec<Node>,
+/// }
+///
+/// impl Node {
+///     fn new(rng: &mut impl Rng, value: u64) -> Self {
+///         let num_children = match value {
+///             0 => 0,
+///             n => rng.random_range(0..(n as usize)),
+///         };
+///         let children = (0..num_children)
+///             .map(|i| Self::new(rng, i as u64))
+///             .collect();
+///         Self { value, children }
+///     }
+/// }
+///
+/// fn process(node_value: u64) {
+///     // fake computation
+///     std::thread::sleep(std::time::Duration::from_millis(node_value));
+/// }
+///
+/// // this defines how the iterator must extend:
+/// // each node drawn from the iterator adds its children to the end of the iterator
+/// fn extend<'a, 'b>(node: &'a &'b Node) -> &'b [Node] {
+///     &node.children
+/// }
+///
+/// // initiate iter with a single element, `root`
+/// // however, the iterator will `extend` on the fly as we keep drawing its elements
+/// let root = Node::new(&mut ChaCha8Rng::seed_from_u64(42), 70);
+/// let iter = DynamicConcurrentIter::new(extend, [&root]);
+///
+/// let num_threads = 8;
+/// let num_spawned = AtomicUsize::new(0);
+/// let num_processed_nodes = AtomicUsize::new(0);
+///
+/// std::thread::scope(|s| {
+///     let mut handles = vec![];
+///     for _ in 0..num_threads {
+///         handles.push(s.spawn(|| {
+///             // allow all threads to be spawned
+///             _ = num_spawned.fetch_add(1, Ordering::Relaxed);
+///             while num_spawned.load(Ordering::Relaxed) < num_threads {}
+///
+///             // `next` will first extend `iter` with children of `node,
+///             // and only then yield the `node`
+///             while let Some(node) = iter.next() {
+///                 process(node.value);
+///                 _ = num_processed_nodes.fetch_add(1, Ordering::Relaxed);
+///             }
+///         }));
+///     }
+/// });
+///
+/// assert_eq!(num_processed_nodes.into_inner(), 177);
+/// ```
 pub struct DynamicConcurrentIter<T, E, I, P = DefaultConVec<T>>
 where
     T: Send,
@@ -115,46 +192,5 @@ where
 
     fn chunk_puller(&self, chunk_size: usize) -> Self::ChunkPuller<'_> {
         DynChunkPuller::new(&self.extend, &self.queue, chunk_size)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::*;
-    use alloc::vec::Vec;
-    use rand::Rng;
-
-    #[test]
-    fn abc() {
-        struct Node {
-            value: u64,
-            children: Vec<Node>,
-        }
-
-        impl Node {
-            fn new(rng: &mut impl Rng, value: u64) -> Self {
-                let num_children = match value {
-                    0 => 0,
-                    n => rng.random_range(0..(n as usize)),
-                };
-                let children = (0..num_children)
-                    .map(|i| Self::new(rng, i as u64))
-                    .collect();
-                Self { value, children }
-            }
-        }
-
-        fn compute(node_value: u64) {
-            // fake computation
-            std::thread::sleep(std::time::Duration::from_millis(node_value));
-        }
-
-        fn extend<'a, 'b>(node: &'a &'b Node) -> &'b [Node] {
-            &node.children
-        }
-
-        // let queue = ConcurrentQueue::new();
-        // queue.push(root);
-        // let iter = DynamicConcurrentIter::new(queue, extend);
     }
 }
