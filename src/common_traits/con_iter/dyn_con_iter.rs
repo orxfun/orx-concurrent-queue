@@ -1,7 +1,7 @@
 use crate::{
     ConcurrentQueue,
     common_traits::con_iter::{chunk_puller::DynChunkPuller, seq_queue::DynSeqQueue},
-    queue::DefaultConVec,
+    queue::DefaultConPinnedVec,
 };
 use core::sync::atomic::Ordering;
 use orx_concurrent_iter::ConcurrentIter;
@@ -97,7 +97,7 @@ use orx_split_vec::SplitVec;
 ///
 /// assert_eq!(num_processed_nodes.into_inner(), 177);
 /// ```
-pub struct DynamicConcurrentIter<T, E, I, P = DefaultConVec<T>>
+pub struct DynamicConcurrentIter<T, E, I, P = DefaultConPinnedVec<T>>
 where
     T: Send,
     E: Fn(&T) -> I + Sync,
@@ -124,7 +124,7 @@ where
     }
 }
 
-impl<T, E, I> DynamicConcurrentIter<T, E, I, DefaultConVec<T>>
+impl<T, E, I> DynamicConcurrentIter<T, E, I, DefaultConPinnedVec<T>>
 where
     T: Send,
     E: Fn(&T) -> I + Sync,

@@ -12,9 +12,9 @@ use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
 use orx_split_vec::{Doubling, SplitVec, prelude::PseudoDefault};
 
 type DefaultPinnedVec<T> = SplitVec<T, Doubling>;
-pub type DefaultConVec<T> = <DefaultPinnedVec<T> as IntoConcurrentPinnedVec<T>>::ConPinnedVec;
+pub type DefaultConPinnedVec<T> = <DefaultPinnedVec<T> as IntoConcurrentPinnedVec<T>>::ConPinnedVec;
 
-impl<T> Default for ConcurrentQueue<T, DefaultConVec<T>>
+impl<T> Default for ConcurrentQueue<T, DefaultConPinnedVec<T>>
 where
     T: Send,
 {
@@ -23,7 +23,7 @@ where
     }
 }
 
-impl<T> ConcurrentQueue<T, DefaultConVec<T>>
+impl<T> ConcurrentQueue<T, DefaultConPinnedVec<T>>
 where
     T: Send,
 {
@@ -159,7 +159,7 @@ where
 ///
 /// assert_eq!(num_performed_tasks.load(Ordering::Relaxed), 5046);
 /// ```
-pub struct ConcurrentQueue<T, P = DefaultConVec<T>>
+pub struct ConcurrentQueue<T, P = DefaultConPinnedVec<T>>
 where
     T: Send,
     P: ConcurrentPinnedVec<T>,

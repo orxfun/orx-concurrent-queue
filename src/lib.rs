@@ -25,4 +25,4 @@ mod queue;
 mod write_permit;
 
 pub use common_traits::con_iter::DynamicConcurrentIter;
-pub use queue::ConcurrentQueue;
+pub use queue::{ConcurrentQueue, DefaultConPinnedVec};
