@@ -4,6 +4,3 @@ mod tests;
 mod into_iter;
 /// Module containing iterator implementations over the concurrent queue.
 pub mod iter;
-
-#[cfg(feature = "orx-concurrent-iter")]
-pub mod con_iter;
