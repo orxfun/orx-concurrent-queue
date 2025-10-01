@@ -10,7 +10,7 @@ use core::{
 };
 use orx_fixed_vec::{ConcurrentFixedVec, FixedVec};
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
-use orx_split_vec::{Doubling, SplitVec, prelude::PseudoDefault};
+use orx_split_vec::{ConcurrentSplitVec, Doubling, Linear, SplitVec, prelude::PseudoDefault};
 
 type DefaultPinnedVec<T> = SplitVec<T, Doubling>;
 
@@ -116,6 +116,58 @@ where
     /// [`FixedVec`]: orx_fixed_vec::FixedVec
     pub fn with_fixed_capacity(fixed_capacity: usize) -> Self {
         FixedVec::new(fixed_capacity).into()
+    }
+}
+
+impl<T> ConcurrentQueue<T, ConcurrentSplitVec<T, Linear>>
+where
+    T: Send,
+{
+    /// Creates a new empty concurrent queue.
+    ///
+    /// This queue is backed with concurrent concurrent version of [`SplitVec`] with [`Linear`] growth.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic; however, the queue created with a linear growth vector
+    /// might panic during growth.
+    /// Unlike `FixedVec` backed queue created by [`with_fixed_capacity`], this queue does not pre-allocate;
+    /// however, it has an upper bound on how much it can grow.
+    /// This upper bound is determined as follows:
+    ///
+    /// * Each fragment of the split vector will have a capacity of  `2 ^ constant_fragment_capacity_exponent`.
+    /// * And the concurrent split vector can have at most `fragments_capacity` capacity.
+    ///
+    /// Therefore, this queue cannot grow beyond `fragments_capacity * 2 ^ constant_fragment_capacity_exponent` elements.
+    ///
+    /// For instance, if the queue is created with
+    /// * `with_linear_growth(10, 64)`, its maximum capacity will be 64x1024 = 65,536,
+    /// * `with_linear_growth(10, 1024)`, its maximum capacity will be 64x1024 = 1,048,576.
+    ///
+    /// If the total number of elements pushed to this queue exceeds this upper bound,
+    /// the vector cannot grow concurrently and panics.
+    ///
+    /// [`with_fixed_capacity`]: ConcurrentQueue::with_fixed_capacity
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::ConcurrentQueue;
+    /// use orx_split_vec::{SplitVec};
+    ///
+    /// let bag: ConcurrentQueue<usize, _> = ConcurrentQueue::with_linear_growth(10, 64);
+    /// // equivalent to:
+    /// let bag: ConcurrentQueue<usize, _> = SplitVec::with_linear_growth_and_fragments_capacity(10, 64).into();
+    /// ```
+    pub fn with_linear_growth(
+        constant_fragment_capacity_exponent: usize,
+        fragments_capacity: usize,
+    ) -> Self {
+        SplitVec::with_linear_growth_and_fragments_capacity(
+            constant_fragment_capacity_exponent,
+            fragments_capacity,
+        )
+        .into()
     }
 }
 
