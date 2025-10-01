@@ -10,13 +10,13 @@ keywords = ["concurrency", "queue", "data-structures", "atomic", "lock-free"]
 categories = ["data-structures", "concurrency", "rust-patterns", "no-std"]
 
 [dependencies]
-# orx-pinned-vec = { version = "3.18.0", default-features = false }
+orx-pinned-vec = { version = "3.20.0", default-features = false }
 # orx-split-vec = { version = "3.20.0", default-features = false }
 # orx-fixed-vec = { version = "3.20.0", default-features = false }
 # orx-concurrent-iter = { path = "../orx-concurrent-iter", optional = true }
-orx-pinned-vec = { git = "https://github.com/orxfun/orx-pinned-vec/", branch = "into-iter-for-concurrent-pinned-vectors" }
-orx-split-vec = { git = "https://github.com/orxfun/orx-split-vec/", branch = "into-iter-for-concurrent-pinned-vec" }
-orx-fixed-vec = { git = "https://github.com/orxfun/orx-fixed-vec/", branch = "into-iter-for-concurrent-pinned-vec" }
+# orx-pinned-vec = { path = "../orx-pinned-vec" }
+orx-split-vec = { path = "../orx-split-vec" }
+orx-fixed-vec = { path = "../orx-fixed-vec" }
 
 [dev-dependencies]
 criterion = { version = "0.7.0", default-features = false }

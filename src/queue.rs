@@ -8,6 +8,7 @@ use core::{
     ops::Range,
     sync::atomic::{AtomicUsize, Ordering},
 };
+use orx_fixed_vec::{ConcurrentFixedVec, FixedVec};
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
 use orx_split_vec::{Doubling, SplitVec, prelude::PseudoDefault};
 
@@ -31,9 +32,38 @@ where
 {
     /// Creates a new empty concurrent queue.
     ///
-    /// This queue is backed with default concurrent pinned vec, which is the concurrent version of [`SplitVec`] with [`Doubling`] growth.
+    /// This queue is backed with default concurrent pinned vec, which is the concurrent version of [`SplitVec`] with [`Doubling`] growth
+    /// (shorthand for [`with_doubling_growth`]).
     ///
     /// In order to create a concurrent queue backed with a particular [`PinnedVec`], you may use the `From` trait.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::ConcurrentQueue;
+    /// use orx_split_vec::{SplitVec, Doubling, Linear};
+    /// use orx_fixed_vec::FixedVec;
+    ///
+    /// let bag: ConcurrentQueue<usize> = ConcurrentQueue::new();
+    /// // equivalent to:
+    /// let bag: ConcurrentQueue<usize> = ConcurrentQueue::with_doubling_growth();
+    ///
+    /// // in order to create a queue from a different pinned vec, use into, rather than new:
+    /// let bag: ConcurrentQueue<usize, _> = SplitVec::with_linear_growth_and_fragments_capacity(10, 64).into();
+    /// let bag: ConcurrentQueue<usize, _> = FixedVec::new(1000).into();
+    /// ```
+    ///
+    /// [`SplitVec`]: orx_split_vec::SplitVec
+    /// [`Doubling`]: orx_split_vec::Doubling
+    /// [`PinnedVec`]: orx_pinned_vec::PinnedVec
+    /// [`with_doubling_growth`]: ConcurrentQueue::with_doubling_growth
+    pub fn new() -> Self {
+        SplitVec::with_doubling_growth_and_max_concurrent_capacity().into()
+    }
+
+    /// Creates a new empty concurrent queue.
+    ///
+    /// This queue is backed with default concurrent pinned vec, which is the concurrent version of [`SplitVec`] with [`Doubling`] growth.
     ///
     /// # Examples
     ///
@@ -44,23 +74,48 @@ where
     ///
     /// let bag: ConcurrentQueue<usize> = ConcurrentQueue::new();
     /// // equivalent to:
-    /// let bag: ConcurrentQueue<usize> = SplitVec::new().into();
-    /// // equivalent to:
-    /// let bag: ConcurrentQueue<usize, ConcurrentSplitVec<_, Doubling>> = SplitVec::with_doubling_growth_and_max_concurrent_capacity().into();
-    ///
-    /// // in order to create a queue from a different pinned vec, use into, rather than new:
-    /// let bag: ConcurrentQueue<usize, _> = SplitVec::with_linear_growth_and_fragments_capacity(10, 64).into();
-    /// let bag: ConcurrentQueue<usize, ConcurrentSplitVec<_, Linear>> = SplitVec::with_linear_growth_and_fragments_capacity(10, 64).into();
-    ///
-    /// let bag: ConcurrentQueue<usize, _> = FixedVec::new(1000).into();
-    /// let bag: ConcurrentQueue<usize, ConcurrentFixedVec<usize>> = FixedVec::new(1000).into();
+    /// let bag: ConcurrentQueue<usize> = ConcurrentQueue::with_doubling_growth();
     /// ```
     ///
     /// [`SplitVec`]: orx_split_vec::SplitVec
     /// [`Doubling`]: orx_split_vec::Doubling
     /// [`PinnedVec`]: orx_pinned_vec::PinnedVec
-    pub fn new() -> Self {
+    /// [`with_doubling_growth`]: ConcurrentQueue::with_doubling_growth
+    pub fn with_doubling_growth() -> Self {
         SplitVec::with_doubling_growth_and_max_concurrent_capacity().into()
+    }
+}
+
+impl<T> ConcurrentQueue<T, ConcurrentFixedVec<T>>
+where
+    T: Send,
+{
+    /// Creates a new empty concurrent queue.
+    ///
+    /// This queue is backed with concurrent concurrent version of [`FixedVec`].
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic; however, the queue created with a fixed capacity vector
+    /// might panic during growth.
+    /// If the total number of elements pushed to this queue exceeds the parameter `fixed_capacity`,
+    /// the vector cannot grow concurrently and panics.
+    /// Please use the other variants to work with a thread safe dynamic capacity.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::ConcurrentQueue;
+    /// use orx_fixed_vec::{FixedVec};
+    ///
+    /// let bag: ConcurrentQueue<usize, _> = ConcurrentQueue::with_fixed_capacity(1024);
+    /// // equivalent to:
+    /// let bag: ConcurrentQueue<usize, _> = FixedVec::new(1024).into();
+    /// ```
+    ///
+    /// [`FixedVec`]: orx_fixed_vec::FixedVec
+    pub fn with_fixed_capacity(fixed_capacity: usize) -> Self {
+        FixedVec::new(fixed_capacity).into()
     }
 }
 
