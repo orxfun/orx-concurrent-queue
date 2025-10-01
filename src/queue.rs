@@ -8,13 +8,16 @@ use core::{
     ops::Range,
     sync::atomic::{AtomicUsize, Ordering},
 };
+use orx_fixed_vec::{ConcurrentFixedVec, FixedVec};
 use orx_pinned_vec::{ConcurrentPinnedVec, IntoConcurrentPinnedVec};
-use orx_split_vec::{Doubling, SplitVec, prelude::PseudoDefault};
+use orx_split_vec::{ConcurrentSplitVec, Doubling, Linear, SplitVec, prelude::PseudoDefault};
 
 type DefaultPinnedVec<T> = SplitVec<T, Doubling>;
-pub type DefaultConVec<T> = <DefaultPinnedVec<T> as IntoConcurrentPinnedVec<T>>::ConPinnedVec;
 
-impl<T> Default for ConcurrentQueue<T, DefaultConVec<T>>
+/// Default concurrent pinned vector used as the underlying storage of the concurrent queue.
+pub type DefaultConPinnedVec<T> = <DefaultPinnedVec<T> as IntoConcurrentPinnedVec<T>>::ConPinnedVec;
+
+impl<T> Default for ConcurrentQueue<T, DefaultConPinnedVec<T>>
 where
     T: Send,
 {
@@ -23,15 +26,44 @@ where
     }
 }
 
-impl<T> ConcurrentQueue<T, DefaultConVec<T>>
+impl<T> ConcurrentQueue<T, DefaultConPinnedVec<T>>
 where
     T: Send,
 {
     /// Creates a new empty concurrent queue.
     ///
-    /// This queue is backed with default concurrent pinned vec, which is the concurrent version of [`SplitVec`] with [`Doubling`] growth.
+    /// This queue is backed with default concurrent pinned vec, which is the concurrent version of [`SplitVec`] with [`Doubling`] growth
+    /// (shorthand for [`with_doubling_growth`]).
     ///
     /// In order to create a concurrent queue backed with a particular [`PinnedVec`], you may use the `From` trait.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::ConcurrentQueue;
+    /// use orx_split_vec::{SplitVec, Doubling, Linear};
+    /// use orx_fixed_vec::FixedVec;
+    ///
+    /// let bag: ConcurrentQueue<usize> = ConcurrentQueue::new();
+    /// // equivalent to:
+    /// let bag: ConcurrentQueue<usize> = ConcurrentQueue::with_doubling_growth();
+    ///
+    /// // in order to create a queue from a different pinned vec, use into, rather than new:
+    /// let bag: ConcurrentQueue<usize, _> = SplitVec::with_linear_growth_and_fragments_capacity(10, 64).into();
+    /// let bag: ConcurrentQueue<usize, _> = FixedVec::new(1000).into();
+    /// ```
+    ///
+    /// [`SplitVec`]: orx_split_vec::SplitVec
+    /// [`Doubling`]: orx_split_vec::Doubling
+    /// [`PinnedVec`]: orx_pinned_vec::PinnedVec
+    /// [`with_doubling_growth`]: ConcurrentQueue::with_doubling_growth
+    pub fn new() -> Self {
+        SplitVec::with_doubling_growth_and_max_concurrent_capacity().into()
+    }
+
+    /// Creates a new empty concurrent queue.
+    ///
+    /// This queue is backed with default concurrent pinned vec, which is the concurrent version of [`SplitVec`] with [`Doubling`] growth.
     ///
     /// # Examples
     ///
@@ -42,23 +74,100 @@ where
     ///
     /// let bag: ConcurrentQueue<usize> = ConcurrentQueue::new();
     /// // equivalent to:
-    /// let bag: ConcurrentQueue<usize> = SplitVec::new().into();
-    /// // equivalent to:
-    /// let bag: ConcurrentQueue<usize, ConcurrentSplitVec<_, Doubling>> = SplitVec::with_doubling_growth_and_max_concurrent_capacity().into();
-    ///
-    /// // in order to create a queue from a different pinned vec, use into, rather than new:
-    /// let bag: ConcurrentQueue<usize, _> = SplitVec::with_linear_growth_and_fragments_capacity(10, 64).into();
-    /// let bag: ConcurrentQueue<usize, ConcurrentSplitVec<_, Linear>> = SplitVec::with_linear_growth_and_fragments_capacity(10, 64).into();
-    ///
-    /// let bag: ConcurrentQueue<usize, _> = FixedVec::new(1000).into();
-    /// let bag: ConcurrentQueue<usize, ConcurrentFixedVec<usize>> = FixedVec::new(1000).into();
+    /// let bag: ConcurrentQueue<usize> = ConcurrentQueue::with_doubling_growth();
     /// ```
     ///
     /// [`SplitVec`]: orx_split_vec::SplitVec
     /// [`Doubling`]: orx_split_vec::Doubling
     /// [`PinnedVec`]: orx_pinned_vec::PinnedVec
-    pub fn new() -> Self {
+    /// [`with_doubling_growth`]: ConcurrentQueue::with_doubling_growth
+    pub fn with_doubling_growth() -> Self {
         SplitVec::with_doubling_growth_and_max_concurrent_capacity().into()
+    }
+}
+
+impl<T> ConcurrentQueue<T, ConcurrentFixedVec<T>>
+where
+    T: Send,
+{
+    /// Creates a new empty concurrent queue.
+    ///
+    /// This queue is backed with concurrent concurrent version of [`FixedVec`].
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic; however, the queue created with a fixed capacity vector
+    /// might panic during growth.
+    /// If the total number of elements pushed to this queue exceeds the parameter `fixed_capacity`,
+    /// the vector cannot grow concurrently and panics.
+    /// Please use the other variants to work with a thread safe dynamic capacity.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::ConcurrentQueue;
+    /// use orx_fixed_vec::{FixedVec};
+    ///
+    /// let bag: ConcurrentQueue<usize, _> = ConcurrentQueue::with_fixed_capacity(1024);
+    /// // equivalent to:
+    /// let bag: ConcurrentQueue<usize, _> = FixedVec::new(1024).into();
+    /// ```
+    ///
+    /// [`FixedVec`]: orx_fixed_vec::FixedVec
+    pub fn with_fixed_capacity(fixed_capacity: usize) -> Self {
+        FixedVec::new(fixed_capacity).into()
+    }
+}
+
+impl<T> ConcurrentQueue<T, ConcurrentSplitVec<T, Linear>>
+where
+    T: Send,
+{
+    /// Creates a new empty concurrent queue.
+    ///
+    /// This queue is backed with concurrent concurrent version of [`SplitVec`] with [`Linear`] growth.
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic; however, the queue created with a linear growth vector
+    /// might panic during growth.
+    /// Unlike `FixedVec` backed queue created by [`with_fixed_capacity`], this queue does not pre-allocate;
+    /// however, it has an upper bound on how much it can grow.
+    /// This upper bound is determined as follows:
+    ///
+    /// * Each fragment of the split vector will have a capacity of  `2 ^ constant_fragment_capacity_exponent`.
+    /// * And the concurrent split vector can have at most `fragments_capacity` capacity.
+    ///
+    /// Therefore, this queue cannot grow beyond `fragments_capacity * 2 ^ constant_fragment_capacity_exponent` elements.
+    ///
+    /// For instance, if the queue is created with
+    /// * `with_linear_growth(10, 64)`, its maximum capacity will be 64x1024 = 65,536,
+    /// * `with_linear_growth(10, 1024)`, its maximum capacity will be 64x1024 = 1,048,576.
+    ///
+    /// If the total number of elements pushed to this queue exceeds this upper bound,
+    /// the vector cannot grow concurrently and panics.
+    ///
+    /// [`with_fixed_capacity`]: ConcurrentQueue::with_fixed_capacity
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::ConcurrentQueue;
+    /// use orx_split_vec::{SplitVec};
+    ///
+    /// let bag: ConcurrentQueue<usize, _> = ConcurrentQueue::with_linear_growth(10, 64);
+    /// // equivalent to:
+    /// let bag: ConcurrentQueue<usize, _> = SplitVec::with_linear_growth_and_fragments_capacity(10, 64).into();
+    /// ```
+    pub fn with_linear_growth(
+        constant_fragment_capacity_exponent: usize,
+        fragments_capacity: usize,
+    ) -> Self {
+        SplitVec::with_linear_growth_and_fragments_capacity(
+            constant_fragment_capacity_exponent,
+            fragments_capacity,
+        )
+        .into()
     }
 }
 
@@ -159,7 +268,7 @@ where
 ///
 /// assert_eq!(num_performed_tasks.load(Ordering::Relaxed), 5046);
 /// ```
-pub struct ConcurrentQueue<T, P = DefaultConVec<T>>
+pub struct ConcurrentQueue<T, P = DefaultConPinnedVec<T>>
 where
     T: Send,
     P: ConcurrentPinnedVec<T>,
@@ -186,9 +295,7 @@ where
     fn drop(&mut self) {
         if core::mem::needs_drop::<T>() {
             let popped = self.popped.load(Ordering::Relaxed);
-            let reserved = self.write_reserved.load(Ordering::Relaxed);
             let written = self.written.load(Ordering::Relaxed);
-            assert_eq!(reserved, written);
             for i in popped..written {
                 let ptr = unsafe { self.ptr(i) };
                 unsafe { ptr.drop_in_place() };
@@ -257,7 +364,7 @@ where
 
         let a = self.popped.load(Ordering::Relaxed);
         let b = self.written.load(Ordering::Relaxed);
-        let len = b - a;
+        let len = b.saturating_sub(a);
         if a > 0 {
             let src = unsafe { vec.ptr_iter_unchecked(a..b) };
             let dst = unsafe { vec.ptr_iter_unchecked(0..len) };
@@ -369,6 +476,112 @@ where
                         if ok {
                             let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
                             return Some(QueueIterOwned::new(iter));
+                        }
+                    }
+                }
+            }
+            false => None,
+        }
+    }
+
+    // shrink with idx
+
+    /// Pops and returns the element in the front of the queue together with its index;
+    /// returns None if the queue is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::*;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// queue.extend(1..4);
+    /// assert_eq!(queue.pop_with_idx(), Some((0, 1)));
+    /// assert_eq!(queue.pop_with_idx(), Some((1, 2)));
+    /// assert_eq!(queue.pop_with_idx(), Some((2, 3)));
+    /// assert_eq!(queue.pop_with_idx(), None);
+    /// ```
+    pub fn pop_with_idx(&self) -> Option<(usize, T)> {
+        let idx = self.popped.fetch_add(1, Ordering::Relaxed);
+
+        loop {
+            let written = self.written.load(Ordering::Acquire);
+            match idx < written {
+                true => return Some((idx, unsafe { self.ptr(idx).read() })),
+                false => {
+                    if comp_exch(&self.popped, idx + 1, idx).is_ok() {
+                        return None;
+                    }
+                }
+            }
+        }
+    }
+
+    /// Pulls `chunk_size` elements from the front of the queue together with the index of the first pulled element:
+    ///
+    /// * returns None if `chunk_size` is zero,
+    /// * returns Some of an ExactSizeIterator with `len = chunk_size` if the queue has at least `chunk_size` items,
+    /// * returns Some of a non-empty ExactSizeIterator with `len` such that `0 < len < chunk_size` if the queue
+    ///   has `len` elements,
+    /// * returns None if the queue is empty.
+    ///
+    /// Therefore, if the method returns a Some variant, the exact size iterator is not empty.
+    ///
+    /// Pulled elements are guaranteed to be consecutive elements in the queue. Therefore, knowing the index of the first pulled element,
+    /// indices of all pulled elements can be known.
+    ///
+    /// In order to reduce the number of concurrent state updates, `pull` with a large enough chunk size might be preferred over `pop` whenever possible.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::*;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// queue.extend(1..6);
+    /// assert_eq!(
+    ///     queue.pull_with_idx(2).map(|(i, x)| x.enumerate().map(|(j, x)| (i + j, x)).collect::<Vec<_>>()),
+    ///     Some(vec![(0, 1), (1, 2)])
+    /// );
+    /// assert_eq!(
+    ///     queue.pull_with_idx(7).map(|(i, x)| x.enumerate().map(|(j, x)| (i + j, x)).collect::<Vec<_>>()),
+    ///     Some(vec![(2, 3), (3, 4), (4, 5)])
+    /// );
+    /// assert_eq!(queue.pull_with_idx(1).map(|(i, x)| x.enumerate().map(|(j, x)| (i + j, x)).collect::<Vec<_>>()), None);
+    /// ```
+    pub fn pull_with_idx(&self, chunk_size: usize) -> Option<(usize, QueueIterOwned<'_, T, P>)> {
+        match chunk_size > 0 {
+            true => {
+                let begin_idx = self.popped.fetch_add(chunk_size, Ordering::Relaxed);
+                let end_idx = begin_idx + chunk_size;
+
+                loop {
+                    let written = self.written.load(Ordering::Acquire);
+
+                    let has_none = begin_idx >= written;
+                    let has_some = !has_none;
+                    let has_all = end_idx <= written;
+
+                    let range = match (has_some, has_all) {
+                        (false, _) => match comp_exch(&self.popped, end_idx, begin_idx).is_ok() {
+                            true => return None,
+                            false => None,
+                        },
+                        (true, true) => Some(begin_idx..end_idx),
+                        (true, false) => Some(begin_idx..written),
+                    };
+
+                    if let Some(range) = range {
+                        let ok = match has_all {
+                            true => true,
+                            false => comp_exch(&self.popped, end_idx, range.end).is_ok(),
+                        };
+
+                        if ok {
+                            let iter = unsafe { self.vec.ptr_iter_unchecked(range) };
+                            return Some((begin_idx, QueueIterOwned::new(iter)));
                         }
                     }
                 }
@@ -496,7 +709,14 @@ where
     /// assert_eq!(queue.len(), 1);
     /// ```
     pub fn len(&self) -> usize {
-        self.written.load(Ordering::Relaxed) - self.popped.load(Ordering::Relaxed)
+        self.written
+            .load(Ordering::Relaxed)
+            .saturating_sub(self.popped.load(Ordering::Relaxed))
+    }
+
+    /// Returns the total number of positions reserved to be written.
+    pub fn num_write_reserved(&self, order: Ordering) -> usize {
+        self.write_reserved.load(order)
     }
 
     /// Returns true if the queue is empty, false otherwise.
@@ -611,13 +831,46 @@ where
             .expect("The underlying pinned vector reached its capacity and failed to grow");
     }
 
-    fn valid_range(&mut self) -> Range<usize> {
+    pub(super) fn valid_range(&mut self) -> Range<usize> {
         self.popped.load(Ordering::Relaxed)..self.written.load(Ordering::Relaxed)
     }
 
-    pub(crate) fn ptr_iter(&mut self) -> P::PtrIter<'_> {
+    pub(super) fn ptr_iter(&mut self) -> P::PtrIter<'_> {
         let range = self.valid_range();
         // SAFETY: with a mut ref, we ensure that the range contains all and only valid values
         unsafe { self.vec.ptr_iter_unchecked(range) }
+    }
+
+    /// Destructs the concurrent queue into its inner pieces:
+    /// * underlying concurrent pinned vector,
+    /// * number of written elements, and
+    /// * number of popped elements.
+    ///
+    /// # Safety
+    ///
+    /// Note that the destruction operation of the queue is safe.
+    /// However, it disconnects the concurrent pinned vector from the information
+    /// of which elements are taken out and which are still to be dropped.
+    /// Therefore, the caller is responsible to drop all elements within the range
+    /// `popped..written`.
+    pub unsafe fn destruct(mut self) -> (P, usize, usize)
+    where
+        <P as ConcurrentPinnedVec<T>>::P: IntoConcurrentPinnedVec<T, ConPinnedVec = P>,
+    {
+        let popped = self.popped.load(Ordering::Relaxed);
+        let write_reserved = self.write_reserved.load(Ordering::Relaxed);
+        let written = self.written.load(Ordering::Relaxed);
+        debug_assert_eq!(written, write_reserved);
+        debug_assert!(written >= popped);
+
+        let vec: <P as ConcurrentPinnedVec<T>>::P = PseudoDefault::pseudo_default();
+        let mut vec = vec.into_concurrent();
+        core::mem::swap(&mut self.vec, &mut vec);
+
+        self.popped.store(0, Ordering::Relaxed);
+        self.write_reserved.store(0, Ordering::Relaxed);
+        self.written.store(0, Ordering::Relaxed);
+
+        (vec, written, popped)
     }
 }

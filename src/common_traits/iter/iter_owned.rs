@@ -1,11 +1,25 @@
 use orx_pinned_vec::ConcurrentPinnedVec;
 
+/// An iterator over owned elements of the concurrent queue created over a given range.
 pub struct QueueIterOwned<'a, T, P>
 where
     T: Send + 'a,
     P: ConcurrentPinnedVec<T> + 'a,
 {
     iter: P::PtrIter<'a>,
+}
+
+impl<'a, T, P> Default for QueueIterOwned<'a, T, P>
+where
+    T: Send + 'a,
+    P: ConcurrentPinnedVec<T> + 'a,
+    <P as ConcurrentPinnedVec<T>>::PtrIter<'a>: Default,
+{
+    fn default() -> Self {
+        Self {
+            iter: Default::default(),
+        }
+    }
 }
 
 impl<'a, T, P> QueueIterOwned<'a, T, P>

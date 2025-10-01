@@ -24,4 +24,5 @@ mod common_traits;
 mod queue;
 mod write_permit;
 
-pub use queue::ConcurrentQueue;
+pub use common_traits::iter;
+pub use queue::{ConcurrentQueue, DefaultConPinnedVec};
