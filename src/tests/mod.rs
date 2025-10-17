@@ -1,5 +1,6 @@
 mod extend;
 mod into_inner;
+mod num_getters;
 mod pop;
 mod pull;
 mod pull_extend;
