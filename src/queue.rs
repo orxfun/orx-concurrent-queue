@@ -692,15 +692,15 @@ where
     ///
     /// ```ignore
     /// let written = self.num_written(Ordering::Relaxed);
-    /// let popped = self.popped(Ordering::Relaxed);
+    /// let popped = self.num_popped(Ordering::Relaxed);
     /// written - popped
     /// ```
     ///
     /// When a different ordering is required, you may write your own `len` method
-    /// using [`num_written`] and [`popped`] methods.
+    /// using [`num_written`] and [`num_popped`] methods.
     ///
     /// [`num_written`]: ConcurrentQueue::num_written
-    /// [`popped`]: ConcurrentQueue::popped
+    /// [`num_popped`]: ConcurrentQueue::num_popped
     ///
     /// # Examples
     ///
