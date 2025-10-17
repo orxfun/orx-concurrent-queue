@@ -688,6 +688,20 @@ where
 
     /// Returns the number of elements in the queue.
     ///
+    /// Importantly note that `len` is a shorthand for:
+    ///
+    /// ```ignore
+    /// let written = self.num_written(Ordering::Relaxed);
+    /// let popped = self.popped(Ordering::Relaxed);
+    /// written - popped
+    /// ```
+    ///
+    /// When a different ordering is required, you may write your own `len` method
+    /// using [`num_written`] and [`popped`] methods.
+    ///
+    /// [`num_written`]: ConcurrentQueue::num_written
+    /// [`popped`]: ConcurrentQueue::popped
+    ///
     /// # Examples
     ///
     /// ```
