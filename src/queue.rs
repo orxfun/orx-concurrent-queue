@@ -719,6 +719,11 @@ where
         self.write_reserved.load(order)
     }
 
+    /// Returns the number of popped elements so far.
+    pub fn num_popped(&self, order: Ordering) -> usize {
+        self.popped.load(order)
+    }
+
     /// Returns true if the queue is empty, false otherwise.
     ///
     /// # Examples
