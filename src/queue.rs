@@ -720,6 +720,33 @@ where
     }
 
     /// Returns the number of popped elements so far.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::*;
+    /// use std::sync::atomic::Ordering;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// assert_eq!(queue.num_popped(Ordering::Relaxed), 0);
+    ///
+    /// queue.push(1);
+    /// queue.extend([2, 3, 4]);
+    /// assert_eq!(queue.num_popped(Ordering::Relaxed), 0);
+    ///
+    /// _ = queue.pop();
+    /// assert_eq!(queue.num_popped(Ordering::Relaxed), 1);
+    ///
+    /// _ = queue.pull(2);
+    /// assert_eq!(queue.num_popped(Ordering::Relaxed), 3);
+    ///
+    /// _ = queue.pull(10); // only 1 is pulled
+    /// assert_eq!(queue.num_popped(Ordering::Relaxed), 4);
+    ///
+    /// _ = queue.pop(); // None
+    /// assert_eq!(queue.num_popped(Ordering::Relaxed), 4);
+    /// ```
     pub fn num_popped(&self, order: Ordering) -> usize {
         self.popped.load(order)
     }
