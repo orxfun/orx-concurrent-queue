@@ -12,6 +12,7 @@ fn num_getters() {
     // write
     for _ in 0..10 {
         assert_eq!(queue.num_write_reserved(order), wr);
+        assert_eq!(queue.num_written(order), wr);
         assert_eq!(queue.num_popped(order), p);
 
         queue.push('x');
@@ -21,6 +22,7 @@ fn num_getters() {
     // pop
     for _ in 0..6 {
         assert_eq!(queue.num_write_reserved(order), wr);
+        assert_eq!(queue.num_written(order), wr);
         assert_eq!(queue.num_popped(order), p);
 
         _ = queue.pop();
@@ -30,6 +32,7 @@ fn num_getters() {
     // write
     for _ in 4..20 {
         assert_eq!(queue.num_write_reserved(order), wr);
+        assert_eq!(queue.num_written(order), wr);
         assert_eq!(queue.num_popped(order), p);
 
         queue.push('x');
@@ -39,6 +42,7 @@ fn num_getters() {
     // pop
     for _ in 0..20 {
         assert_eq!(queue.num_write_reserved(order), wr);
+        assert_eq!(queue.num_written(order), wr);
         assert_eq!(queue.num_popped(order), p);
 
         _ = queue.pop();
