@@ -722,6 +722,7 @@ where
     /// _ = queue.pull(4);
     /// assert_eq!(queue.len(), 1);
     /// ```
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.written
             .load(Ordering::Relaxed)
@@ -774,6 +775,7 @@ where
     /// _ = queue.pop(); // None
     /// assert_eq!(queue.num_written(Ordering::Relaxed), 4);
     /// ```
+    #[inline(always)]
     pub fn num_written(&self, order: Ordering) -> usize {
         self.written.load(order)
     }
@@ -822,6 +824,7 @@ where
     /// _ = queue.pop(); // None
     /// assert_eq!(queue.num_write_reserved(Ordering::Relaxed), 4);
     /// ```
+    #[inline(always)]
     pub fn num_write_reserved(&self, order: Ordering) -> usize {
         self.write_reserved.load(order)
     }
@@ -854,6 +857,7 @@ where
     /// _ = queue.pop(); // None
     /// assert_eq!(queue.num_popped(Ordering::Relaxed), 4);
     /// ```
+    #[inline(always)]
     pub fn num_popped(&self, order: Ordering) -> usize {
         self.popped.load(order)
     }
