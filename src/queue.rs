@@ -688,6 +688,20 @@ where
 
     /// Returns the number of elements in the queue.
     ///
+    /// Importantly note that `len` is a shorthand for:
+    ///
+    /// ```ignore
+    /// let written = self.num_written(Ordering::Relaxed);
+    /// let popped = self.num_popped(Ordering::Relaxed);
+    /// written - popped
+    /// ```
+    ///
+    /// When a different ordering is required, you may write your own `len` method
+    /// using [`num_written`] and [`num_popped`] methods.
+    ///
+    /// [`num_written`]: ConcurrentQueue::num_written
+    /// [`num_popped`]: ConcurrentQueue::num_popped
+    ///
     /// # Examples
     ///
     /// ```
@@ -708,15 +722,144 @@ where
     /// _ = queue.pull(4);
     /// assert_eq!(queue.len(), 1);
     /// ```
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.written
             .load(Ordering::Relaxed)
             .saturating_sub(self.popped.load(Ordering::Relaxed))
     }
 
+    /// Returns the total number of positions written; i.e., total of
+    /// number of times we pushed and sum of lengths of iterators that
+    /// we extended the queue with.
+    ///
+    /// See [`num_write_reserved`] to get the number of positions which are
+    /// reserved to be written.
+    ///
+    /// Note that in a synchronous program, number of reserved positions
+    /// will be equal to the number of written positions.
+    ///
+    /// In a concurrent program; however, it is possible to observe that
+    /// `num_write_reserved >= num_written` since we might observe the
+    /// counts while writing of some elements are in progress.
+    ///
+    /// However, we can never observe `num_write_reserved < num_written`.
+    ///
+    /// [`num_written`]: ConcurrentQueue::num_written
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::*;
+    /// use std::sync::atomic::Ordering;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// assert_eq!(queue.num_written(Ordering::Relaxed), 0);
+    ///
+    /// queue.push(1);
+    /// assert_eq!(queue.num_written(Ordering::Relaxed), 1);
+    ///
+    /// queue.extend([2, 3, 4]);
+    /// assert_eq!(queue.num_written(Ordering::Relaxed), 4);
+    ///
+    /// _ = queue.pop();
+    /// assert_eq!(queue.num_written(Ordering::Relaxed), 4);
+    ///
+    /// _ = queue.pull(2);
+    /// assert_eq!(queue.num_written(Ordering::Relaxed), 4);
+    ///
+    /// _ = queue.pull(10); // only 1 is pulled
+    /// assert_eq!(queue.num_written(Ordering::Relaxed), 4);
+    ///
+    /// _ = queue.pop(); // None
+    /// assert_eq!(queue.num_written(Ordering::Relaxed), 4);
+    /// ```
+    #[inline(always)]
+    pub fn num_written(&self, order: Ordering) -> usize {
+        self.written.load(order)
+    }
+
     /// Returns the total number of positions reserved to be written.
+    ///
+    /// See [`num_written`] to get the number of elements which are
+    /// completely written.
+    ///
+    /// Note that in a synchronous program, number of reserved positions
+    /// will be equal to the number of written positions.
+    ///
+    /// In a concurrent program; however, it is possible to observe that
+    /// `num_write_reserved >= num_written` since we might observe the
+    /// counts while writing of some elements are in progress.
+    ///
+    /// However, we can never observe `num_write_reserved < num_written`.
+    ///
+    /// [`num_written`]: ConcurrentQueue::num_written
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::*;
+    /// use std::sync::atomic::Ordering;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// assert_eq!(queue.num_write_reserved(Ordering::Relaxed), 0);
+    ///
+    /// queue.push(1);
+    /// assert_eq!(queue.num_write_reserved(Ordering::Relaxed), 1);
+    ///
+    /// queue.extend([2, 3, 4]);
+    /// assert_eq!(queue.num_write_reserved(Ordering::Relaxed), 4);
+    ///
+    /// _ = queue.pop();
+    /// assert_eq!(queue.num_write_reserved(Ordering::Relaxed), 4);
+    ///
+    /// _ = queue.pull(2);
+    /// assert_eq!(queue.num_write_reserved(Ordering::Relaxed), 4);
+    ///
+    /// _ = queue.pull(10); // only 1 is pulled
+    /// assert_eq!(queue.num_write_reserved(Ordering::Relaxed), 4);
+    ///
+    /// _ = queue.pop(); // None
+    /// assert_eq!(queue.num_write_reserved(Ordering::Relaxed), 4);
+    /// ```
+    #[inline(always)]
     pub fn num_write_reserved(&self, order: Ordering) -> usize {
         self.write_reserved.load(order)
+    }
+
+    /// Returns the number of popped elements so far.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use orx_concurrent_queue::*;
+    /// use std::sync::atomic::Ordering;
+    ///
+    /// let queue = ConcurrentQueue::new();
+    ///
+    /// assert_eq!(queue.num_popped(Ordering::Relaxed), 0);
+    ///
+    /// queue.push(1);
+    /// queue.extend([2, 3, 4]);
+    /// assert_eq!(queue.num_popped(Ordering::Relaxed), 0);
+    ///
+    /// _ = queue.pop();
+    /// assert_eq!(queue.num_popped(Ordering::Relaxed), 1);
+    ///
+    /// _ = queue.pull(2);
+    /// assert_eq!(queue.num_popped(Ordering::Relaxed), 3);
+    ///
+    /// _ = queue.pull(10); // only 1 is pulled
+    /// assert_eq!(queue.num_popped(Ordering::Relaxed), 4);
+    ///
+    /// _ = queue.pop(); // None
+    /// assert_eq!(queue.num_popped(Ordering::Relaxed), 4);
+    /// ```
+    #[inline(always)]
+    pub fn num_popped(&self, order: Ordering) -> usize {
+        self.popped.load(order)
     }
 
     /// Returns true if the queue is empty, false otherwise.
