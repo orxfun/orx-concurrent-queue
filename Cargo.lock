@@ -223,7 +223,7 @@ dependencies = [
 
 [[package]]
 name = "orx-concurrent-queue"
-version = "1.2.0"
+version = "2.0.0"
 dependencies = [
  "criterion",
  "orx-concurrent-bag",
