@@ -103,7 +103,7 @@ where
         for i in 0..20 {
             queue.push(i.to_string());
         }
-        while let Some(_) = queue.pop() {}
+        while queue.pop().is_some() {}
         queue.into_iter()
     };
 

@@ -3,7 +3,7 @@
 use orx_concurrent_bag::*;
 use orx_concurrent_queue::*;
 use orx_split_vec::Collection;
-use rand::Rng;
+use rand::{Rng, RngExt};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 fn main() {
