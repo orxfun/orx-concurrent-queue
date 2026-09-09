@@ -449,7 +449,13 @@ where
         match chunk_size > 0 {
             true => {
                 let begin_idx = self.popped.fetch_add(chunk_size, Ordering::Relaxed);
-                let end_idx = begin_idx + chunk_size;
+                let end_idx = match begin_idx.checked_add(chunk_size) {
+                    Some(end) => end,
+                    None => {
+                        self.popped.fetch_sub(chunk_size, Ordering::Relaxed);
+                        return None;
+                    }
+                };
 
                 loop {
                     let written = self.written.load(Ordering::Acquire);
@@ -555,7 +561,13 @@ where
         match chunk_size > 0 {
             true => {
                 let begin_idx = self.popped.fetch_add(chunk_size, Ordering::Relaxed);
-                let end_idx = begin_idx + chunk_size;
+                let end_idx = match begin_idx.checked_add(chunk_size) {
+                    Some(end) => end,
+                    None => {
+                        self.popped.fetch_sub(chunk_size, Ordering::Relaxed);
+                        return None;
+                    }
+                };
 
                 loop {
                     let written = self.written.load(Ordering::Acquire);
